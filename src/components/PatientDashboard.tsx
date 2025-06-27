@@ -123,7 +123,7 @@ export default function PatientDashboard(): React.JSX.Element {
           body: JSON.stringify({ ...patientData, id: newPatient.id }),
         });
         const data = await response.json();
-        setPatients(data.patients);
+        setPatients(p => [...p, ...data.patients]);
         toast({
           title: 'Success',
           description: 'Patient added successfully',
