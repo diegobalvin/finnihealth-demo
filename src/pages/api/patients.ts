@@ -9,27 +9,8 @@ const supabase = createClient(supabaseUrl!, supabaseKey!);
 
 type ResponseData = {
   message: string;
-  patients: Patient[];
+  patients?: Patient[];
 };
-
-let patients: Patient[] = [
-  {
-    id: '1',
-    firstName: 'John',
-    lastName: 'Doe',
-    dateOfBirth: new Date().toISOString(),
-    status: 'Active',
-    address: '123 Main St, Anytown, USA',
-  },
-  {
-    id: '2',
-    firstName: 'Jane',
-    lastName: 'Doe',
-    dateOfBirth: new Date().toISOString(),
-    status: 'Active',
-    address: '123 Main St, Anytown, USA',
-  },
-];
 
 export default async function handler(
   req: NextApiRequest,
@@ -94,28 +75,40 @@ export default async function handler(
     const patient =
       typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
-    const index = patients.findIndex(p => p.id === patient.id);
+    const { error } = await supabase
+      .from('patients')
+      .update({
+        first_name: patient.firstName,
+        middle_name: patient.middleName,
+        last_name: patient.lastName,
+        date_of_birth: patient.dateOfBirth,
+        status: patient.status,
+        address: patient.address,
+      })
+      .eq('id', patient.id);
 
-    if (index === -1) {
-      res.status(404).json({ message: 'Patient not found', patients });
+    if (error) {
+      res.status(500).json({ message: 'Error updating patient', patients: [] });
       return;
     }
-
-    patients[index] = patient;
-
-    res.status(200).json({ message: 'Patient updated successfully', patients });
+    res.status(200).json({ message: 'Patient updated successfully' });
   } else if (req.method === 'DELETE') {
     // delete from database
     const patient =
       typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const index = patients.findIndex(p => p.id === patient.id);
 
-    if (index === -1) {
-      res.status(404).json({ message: 'Patient not found', patients });
+    const { error } = await supabase
+      .from('patients')
+      .delete()
+      .eq('id', patient.id);
+
+    if (error) {
+      res.status(500).json({ message: 'Error deleting patient', patients: [] });
       return;
     }
 
-    patients.splice(index, 1);
-    res.status(200).json({ message: 'Patient deleted successfully', patients });
+    res.status(200).json({
+      message: 'Patient deleted successfully',
+    });
   }
 }

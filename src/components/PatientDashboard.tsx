@@ -92,9 +92,14 @@ export default function PatientDashboard(): React.JSX.Element {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...patientData, id: editingPatient.id }),
         });
-        const data = await response.json();
-        console.log('data', data);
-        setPatients(data.patients);
+        const _ = await response.json();
+        setPatients(p =>
+          p.map(patient =>
+            patient.id === editingPatient.id
+              ? { ...patient, ...patientData }
+              : patient
+          )
+        );
         toast({
           title: 'Success',
           description: 'Patient updated successfully',
@@ -152,8 +157,8 @@ export default function PatientDashboard(): React.JSX.Element {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
-      const data = await response.json();
-      setPatients(data.patients);
+      const _ = await response.json();
+      setPatients(p => p.filter(p => p.id !== id));
       toast({
         title: 'Success',
         description: 'Patient deleted successfully',
