@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -13,25 +13,16 @@ import PatientList from './PatientList';
 import PatientForm from './PatientForm';
 
 export default function PatientDashboard(): React.JSX.Element {
-  const [patients, setPatients] = useState<Patient[]>([
-    {
-      id: '1',
-      firstName: 'John',
-      middleName: 'Michael',
-      lastName: 'Doe',
-      dateOfBirth: '1990-05-15',
-      status: 'Active',
-      address: '123 Main St, New York, NY 10001',
-    },
-    {
-      id: '2',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      dateOfBirth: '1985-08-22',
-      status: 'Onboarding',
-      address: '456 Oak Ave, Los Angeles, CA 90210',
-    },
-  ]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+
+  useEffect(() => {
+    const fetchPatients = async () => {
+      const response = await fetch('/api/patients');
+      const data = await response.json();
+      setPatients(data.patients);
+    };
+    fetchPatients();
+  }, []);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
@@ -67,7 +58,7 @@ export default function PatientDashboard(): React.JSX.Element {
     setFormData(data);
   };
 
-  const handleFormSubmit = (): void => {
+  const handleFormSubmit = async (): Promise<void> => {
     if (
       !formData.firstName ||
       !formData.lastName ||
@@ -95,49 +86,86 @@ export default function PatientDashboard(): React.JSX.Element {
     };
 
     if (editingPatient) {
-      setPatients(prev =>
-        prev.map(p =>
-          p.id === editingPatient.id
-            ? { ...patientData, id: editingPatient.id }
-            : p
-        )
-      );
-      toast({
-        title: 'Success',
-        description: 'Patient updated successfully',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
+      try {
+        const response = await fetch(`/api/patients/`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...patientData, id: editingPatient.id }),
+        });
+        const data = await response.json();
+        console.log('data', data);
+        setPatients(data.patients);
+        toast({
+          title: 'Success',
+          description: 'Patient updated successfully',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'There was an error updating the patient',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
     } else {
       const newPatient: Patient = {
         ...patientData,
         id: Date.now().toString(),
       };
-      setPatients(prev => [...prev, newPatient]);
-      toast({
-        title: 'Success',
-        description: 'Patient added successfully',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
+      try {
+        const response = await fetch(`/api/patients/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...patientData, id: newPatient.id }),
+        });
+        const data = await response.json();
+        setPatients(data.patients);
+        toast({
+          title: 'Success',
+          description: 'Patient added successfully',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'There was an error adding the patient',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
     }
 
     handleFormCancel();
   };
 
-  const handleDeletePatient = (id: string): void => {
-    if (
-      window.confirm(
-        'Are you sure you want to delete this patient? This action cannot be undone.'
-      )
-    ) {
-      setPatients(prev => prev.filter(p => p.id !== id));
+  const handleDeletePatient = async (id: string): Promise<void> => {
+    try {
+      const response = await fetch(`/api/patients/`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const data = await response.json();
+      setPatients(data.patients);
       toast({
         title: 'Success',
         description: 'Patient deleted successfully',
         status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'There was an error deleting the patient',
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
@@ -164,7 +192,7 @@ export default function PatientDashboard(): React.JSX.Element {
           onEditPatient={handleEditPatient}
           onDeletePatient={handleDeletePatient}
         />
-        
+
         <PatientForm
           isOpen={isOpen}
           editingPatient={editingPatient}
