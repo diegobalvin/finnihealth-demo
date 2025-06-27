@@ -1,0 +1,22 @@
+# Dependencies
+node_modules
+.yarn
+
+# Build outputs
+.next
+out
+dist
+build
+
+# Generated files
+*.tsbuildinfo
+
+# Logs
+*.log
+
+# Environment files
+.env*
+
+# Cache
+.cache
+.eslintcache
