@@ -7,10 +7,18 @@ import {
   Button,
   useDisclosure,
   useToast,
+  Flex,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  DrawerHeader,
+  DrawerBody,
 } from '@chakra-ui/react';
 import { Patient, PatientFormData } from '@/types/patient';
 import PatientList from './PatientList';
 import PatientForm from './PatientForm';
+import PatientCard from './PatientCard';
 
 export default function PatientDashboard(): React.JSX.Element {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -28,6 +36,12 @@ export default function PatientDashboard(): React.JSX.Element {
   const toast = useToast();
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [formData, setFormData] = useState<Partial<PatientFormData>>({});
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const {
+    isOpen: isDrawerOpen,
+    onOpen: openDrawer,
+    onClose: closeDrawer,
+  } = useDisclosure();
 
   const handleAddPatient = (): void => {
     setEditingPatient(null);
@@ -177,11 +191,21 @@ export default function PatientDashboard(): React.JSX.Element {
     }
   };
 
+  const handleSelectPatient = (patient: Patient) => {
+    setSelectedPatient(patient);
+    openDrawer();
+  };
+
+  const handleDrawerClose = () => {
+    setSelectedPatient(null);
+    closeDrawer();
+  };
+
   return (
     <Box minH="100vh" bg="gray.50">
       <Box bg="white" px={6} py={4} borderBottom="1px" borderColor="gray.200">
         <Heading size="lg" color="blue.500">
-          Patient Management Dashboard
+          Finnihealth Patient Management
         </Heading>
       </Box>
 
@@ -192,11 +216,39 @@ export default function PatientDashboard(): React.JSX.Element {
           </Button>
         </Box>
 
-        <PatientList
-          patients={patients}
-          onEditPatient={handleEditPatient}
-          onDeletePatient={handleDeletePatient}
-        />
+        <Flex gap={6} align="flex-start">
+          <Box flex={1} minW="350px">
+            <PatientList
+              patients={patients}
+              onEditPatient={handleEditPatient}
+              onDeletePatient={handleDeletePatient}
+              onSelectPatient={handleSelectPatient}
+              selectedPatientId={selectedPatient?.id}
+            />
+          </Box>
+        </Flex>
+
+        <Drawer
+          isOpen={isDrawerOpen}
+          placement="right"
+          onClose={handleDrawerClose}
+          size="md"
+        >
+          <DrawerOverlay />
+          <DrawerContent>
+            <DrawerCloseButton />
+            <DrawerHeader>Patient Details</DrawerHeader>
+            <DrawerBody>
+              {selectedPatient && (
+                <PatientCard
+                  patient={selectedPatient}
+                  onEdit={handleEditPatient}
+                  onDelete={handleDeletePatient}
+                />
+              )}
+            </DrawerBody>
+          </DrawerContent>
+        </Drawer>
 
         <PatientForm
           isOpen={isOpen}

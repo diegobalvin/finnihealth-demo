@@ -1,30 +1,68 @@
 import React from 'react';
-import { VStack } from '@chakra-ui/react';
-import PatientCard from './PatientCard';
+import { Table, Thead, Tbody, Tr, Th, Td, Box, Badge } from '@chakra-ui/react';
 import { Patient } from '@/types/patient';
 
 interface PatientListProps {
   patients: Patient[];
   onEditPatient: (patient: Patient) => void;
   onDeletePatient: (id: string) => void;
+  onSelectPatient: (patient: Patient) => void;
+  selectedPatientId?: string;
 }
 
 const PatientList: React.FC<PatientListProps> = ({
   patients,
   onEditPatient,
   onDeletePatient,
+  onSelectPatient,
+  selectedPatientId,
 }) => {
   return (
-    <VStack spacing={4}>
-      {patients.map(patient => (
-        <PatientCard
-          key={patient.id}
-          patient={patient}
-          onEdit={onEditPatient}
-          onDelete={onDeletePatient}
-        />
-      ))}
-    </VStack>
+    <Box overflowX="auto" bg="white" borderRadius="md" shadow="sm" p={2}>
+      <Table size="md">
+        <Thead>
+          <Tr>
+            <Th>Name</Th>
+            <Th>Date of Birth</Th>
+            <Th>Address</Th>
+            <Th>Status</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {patients.map(patient => {
+            const fullName = `${patient.firstName} ${patient.middleName ? patient.middleName + ' ' : ''}${patient.lastName}`;
+            const isSelected = patient.id === selectedPatientId;
+            return (
+              <Tr
+                key={patient.id}
+                bg={isSelected ? 'blue.50' : undefined}
+                _hover={{ bg: 'gray.100', cursor: 'pointer' }}
+                onClick={() => onSelectPatient(patient)}
+              >
+                <Td fontWeight={isSelected ? 'bold' : 'normal'}>{fullName}</Td>
+                <Td>{new Date(patient.dateOfBirth).toLocaleDateString()}</Td>
+                <Td>{patient.address}</Td>
+                <Td>
+                  <Badge
+                    colorScheme={
+                      patient.status === 'Inquiry'
+                        ? 'blue'
+                        : patient.status === 'Onboarding'
+                          ? 'orange'
+                          : patient.status === 'Active'
+                            ? 'green'
+                            : 'red'
+                    }
+                  >
+                    {patient.status}
+                  </Badge>
+                </Td>
+              </Tr>
+            );
+          })}
+        </Tbody>
+      </Table>
+    </Box>
   );
 };
 
