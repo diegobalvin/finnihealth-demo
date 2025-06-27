@@ -211,7 +211,7 @@ export default function PatientDashboard(): React.JSX.Element {
 
       <Box p={6}>
         <Box mb={4}>
-          <Button colorScheme="blue" onClick={handleAddPatient} size="lg">
+          <Button colorScheme="blue" onClick={handleAddPatient} size="md">
             + Add Patient
           </Button>
         </Box>
