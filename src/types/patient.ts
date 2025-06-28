@@ -7,7 +7,7 @@ export interface Patient {
   status: 'Inquiry' | 'Onboarding' | 'Active' | 'Churned';
   address: string;
   providerId: string;
-  statusUpdates: StatusUpdate[];
+  statusHistory: StatusUpdate[];
 }
 
 export interface Provider {

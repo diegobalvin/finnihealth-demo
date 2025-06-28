@@ -1,6 +1,7 @@
 import React from 'react';
 import { Table, Thead, Tbody, Tr, Th, Td, Box, Badge } from '@chakra-ui/react';
 import { Patient } from '@/types/patient';
+import { getStatusColorScheme } from '@/utils/statusColor';
 
 interface PatientListProps {
   patients: Patient[];
@@ -43,17 +44,7 @@ const PatientList: React.FC<PatientListProps> = ({
                 </Td>
                 <Td>{patient.address}</Td>
                 <Td>
-                  <Badge
-                    colorScheme={
-                      patient.status === 'Inquiry'
-                        ? 'blue'
-                        : patient.status === 'Onboarding'
-                          ? 'orange'
-                          : patient.status === 'Active'
-                            ? 'green'
-                            : 'red'
-                    }
-                  >
+                  <Badge colorScheme={getStatusColorScheme(patient.status)}>
                     {patient.status}
                   </Badge>
                 </Td>

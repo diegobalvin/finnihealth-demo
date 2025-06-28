@@ -112,7 +112,7 @@ const PatientForm: React.FC<PatientFormProps> = ({
           <FormControl isRequired>
             <FormLabel>Address</FormLabel>
             <Textarea
-              rows={3}
+              rows={2}
               placeholder="Enter address"
               value={formData.address || ''}
               onChange={e => updateFormField('address', e.target.value)}

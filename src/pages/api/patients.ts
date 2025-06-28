@@ -9,8 +9,8 @@ const supabase = createClient(supabaseUrl!, supabaseKey!);
 
 type ResponseData = {
   message: string;
-  patients?: Patient[];
-  patient?: Patient;
+  patients: Patient[];
+  patient: Patient | null;
 };
 
 const hasRequiredFields = (patient: Patient): boolean => {
@@ -19,8 +19,7 @@ const hasRequiredFields = (patient: Patient): boolean => {
       patient.lastName &&
       patient.dateOfBirth &&
       patient.status &&
-      patient.address &&
-      patient.providerId
+      patient.address
   );
 };
 export default async function handler(
@@ -34,7 +33,12 @@ export default async function handler(
       .select('*, status_update(*)');
 
     if (error) {
-      res.status(500).json({ message: `Error fetching patients` });
+      console.error('Error fetching patients:', error);
+      res.status(500).json({
+        message: `Error fetching patients`,
+        patients: [],
+        patient: null,
+      });
       return;
     }
 
@@ -46,19 +50,31 @@ export default async function handler(
       status: p.status,
       address: p.address,
       providerId: p.provider_id,
-      statusUpdates: p.status_update,
+      statusHistory: p.status_update.map((s: any) => ({
+        id: s.id,
+        patientId: s.patient_id,
+        status: s.status,
+        createdAt: s.created_at,
+      })),
     }));
 
-    res
-      .status(200)
-      .json({ message: 'Patients fetched successfully', patients });
+    res.status(200).json({
+      message: 'Patients fetched successfully',
+      patients,
+      patient: null,
+    });
   } else if (req.method === 'POST') {
     // add patient and status update to database
     const patient =
       typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
     if (!hasRequiredFields(patient)) {
-      res.status(400).json({ message: 'Missing required patient fields' });
+      console.error('Missing required patient fields:', patient);
+      res.status(400).json({
+        message: 'Missing required patient fields',
+        patients: [],
+        patient: null,
+      });
       return;
     }
     // add patient to database
@@ -78,11 +94,21 @@ export default async function handler(
       .select();
 
     if (patientError) {
-      res.status(500).json({ message: 'Error adding patient' });
+      console.error('Error adding patient:', patientError);
+      res.status(500).json({
+        message: 'Error adding patient',
+        patients: [],
+        patient: null,
+      });
       return;
     }
     if (!patientData || patientData.length === 0) {
-      res.status(500).json({ message: 'Patient was not created as expected' });
+      console.error('Patient was not created as expected:', patientData);
+      res.status(500).json({
+        message: 'Patient was not created as expected',
+        patients: [],
+        patient: null,
+      });
       return;
     }
     const newPatient: Patient = {
@@ -93,7 +119,7 @@ export default async function handler(
       status: patientData[0].status,
       address: patientData[0].address,
       providerId: patientData[0].provider_id,
-      statusUpdates: [],
+      statusHistory: [],
     };
     // add status update to database
     const { data: statusUpdateData, error: statusUpdateError } = await supabase
@@ -106,7 +132,16 @@ export default async function handler(
       !statusUpdateData ||
       statusUpdateData.length === 0
     ) {
-      res.status(500).json({ message: 'Error adding status update' });
+      console.error(
+        'Error adding status update:',
+        statusUpdateError,
+        statusUpdateData
+      );
+      res.status(500).json({
+        message: 'Error adding status update',
+        patients: [],
+        patient: null,
+      });
       return;
     }
     const newStatusUpdate: StatusUpdate = {
@@ -118,7 +153,8 @@ export default async function handler(
 
     res.status(201).json({
       message: 'Patient added successfully',
-      patient: { ...newPatient, statusUpdates: [newStatusUpdate] },
+      patients: [],
+      patient: { ...newPatient, statusHistory: [newStatusUpdate] },
     });
   } else if (req.method === 'PUT') {
     // update in database
@@ -126,7 +162,12 @@ export default async function handler(
       typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
     if (!hasRequiredFields(patient)) {
-      res.status(400).json({ message: 'Missing required patient fields' });
+      console.error('Missing required patient fields:', patient);
+      res.status(400).json({
+        message: 'Missing required patient fields',
+        patients: [],
+        patient: null,
+      });
       return;
     }
 
@@ -147,13 +188,22 @@ export default async function handler(
         !statusUpdateData ||
         statusUpdateData.length === 0
       ) {
-        res.status(500).json({ message: 'Error updating status update' });
+        console.error(
+          'Error updating status update:',
+          statusUpdateError,
+          statusUpdateData
+        );
+        res.status(500).json({
+          message: 'Error updating status update',
+          patients: [],
+          patient: null,
+        });
         return;
       }
     }
 
     // update patient in database
-    const { data: patientData, error: patientError } = await supabase
+    const { data: updatedPatient, error: patientError } = await supabase
       .from('patients')
       .update({
         first_name: patient.firstName,
@@ -164,36 +214,57 @@ export default async function handler(
         address: patient.address,
       })
       .eq('id', patient.id)
-      .select('*, status_update(*)');
+      .select('*, status_update(*)')
+      .single();
 
     if (patientError) {
-      res.status(500).json({ message: 'Error updating patient' });
+      console.error('Error updating patient:', patientError);
+      res.status(500).json({
+        message: 'Error updating patient',
+        patients: [],
+        patient: null,
+      });
       return;
     }
-    if (!patientData || patientData.length === 0 || !patientData[0]) {
-      res.status(404).json({ message: 'Patient not found' });
+    if (!updatedPatient) {
+      console.error('Patient not found during update:', updatedPatient);
+      res.status(404).json({
+        message: 'Patient not found',
+        patients: [],
+        patient: null,
+      });
       return;
     }
-    const updatedPatient: Patient = {
-      id: patientData[0].id,
-      firstName: patientData[0].first_name,
-      lastName: patientData[0].last_name,
-      dateOfBirth: patientData[0].date_of_birth,
-      status: patientData[0].status,
-      address: patientData[0].address,
-      providerId: patientData[0].provider_id,
-      statusUpdates: patientData[0].status_update,
-    };
     res.status(200).json({
       message: 'Patient updated successfully',
-      patient: updatedPatient,
+      patients: [],
+      patient: {
+        id: updatedPatient.id,
+        firstName: updatedPatient.first_name,
+        lastName: updatedPatient.last_name,
+        dateOfBirth: updatedPatient.date_of_birth,
+        status: updatedPatient.status,
+        address: updatedPatient.address,
+        providerId: updatedPatient.provider_id,
+        statusHistory: updatedPatient.status_update.map((s: any) => ({
+          id: s.id,
+          patientId: s.patient_id,
+          status: s.status,
+          createdAt: s.created_at,
+        })),
+      },
     });
   } else if (req.method === 'DELETE') {
     const patient =
       typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
     if (!patient.id) {
-      res.status(400).json({ message: 'Patient ID is required' });
+      console.error('Patient ID is required:', patient);
+      res.status(400).json({
+        message: 'Patient ID is required',
+        patients: [],
+        patient: null,
+      });
       return;
     }
     // delete status updates first
@@ -203,43 +274,68 @@ export default async function handler(
       .eq('patient_id', patient.id);
 
     if (statusUpdateError) {
-      res.status(500).json({ message: 'Error deleting status update' });
+      console.error('Error deleting status update:', statusUpdateError);
+      res.status(500).json({
+        message: 'Error deleting status update',
+        patients: [],
+        patient: null,
+      });
       return;
     }
 
     // delete patient
-    const { data: deletedPatients, error: patientError } = await supabase
+    const { data: deletedPatient, error: patientError } = await supabase
       .from('patients')
       .delete()
       .eq('id', patient.id)
-      .select('*, status_update(*)');
+      .select('*, status_update(*)')
+      .single();
 
     if (patientError) {
-      res.status(500).json({ message: 'Error deleting patient' });
+      console.error('Error deleting patient:', patientError);
+      res.status(500).json({
+        message: 'Error deleting patient',
+        patients: [],
+        patient: null,
+      });
       return;
     }
-    if (!deletedPatients || deletedPatients.length === 0) {
-      res.status(404).json({ message: 'Patient not found' });
+    if (!deletedPatient) {
+      console.error('Patient not found during delete:', deletedPatient);
+      res.status(404).json({
+        message: 'Patient not found',
+        patients: [],
+        patient: null,
+      });
       return;
     }
-
-    const deletedPatient: Patient = {
-      id: deletedPatients[0].id,
-      firstName: deletedPatients[0].first_name,
-      lastName: deletedPatients[0].last_name,
-      dateOfBirth: deletedPatients[0].date_of_birth,
-      status: deletedPatients[0].status,
-      address: deletedPatients[0].address,
-      providerId: deletedPatients[0].provider_id,
-      statusUpdates: deletedPatients[0].status_update,
-    };
 
     res.status(200).json({
       message: 'Patient deleted successfully',
-      patient: deletedPatient,
+      patients: [],
+      patient: {
+        id: deletedPatient.id,
+        firstName: deletedPatient.first_name,
+        lastName: deletedPatient.last_name,
+        dateOfBirth: deletedPatient.date_of_birth,
+        status: deletedPatient.status,
+        address: deletedPatient.address,
+        providerId: deletedPatient.provider_id,
+        statusHistory: deletedPatient.status_update.map((s: any) => ({
+          id: s.id,
+          patientId: s.patient_id,
+          status: s.status,
+          createdAt: s.created_at,
+        })),
+      },
     });
   } else {
     res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
-    res.status(405).json({ message: `Method ${req.method} Not Allowed` });
+    console.error(`Method ${req.method} Not Allowed`);
+    res.status(405).json({
+      message: `Method ${req.method} Not Allowed`,
+      patients: [],
+      patient: null,
+    });
   }
 }

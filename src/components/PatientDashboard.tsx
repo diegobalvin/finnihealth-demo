@@ -115,7 +115,7 @@ export default function PatientDashboard(): React.JSX.Element {
         const data = await response.json();
         setPatients(p =>
           p.map(patient =>
-            patient.id === selectedPatient.id ? data.patients[0] : patient
+            patient.id === selectedPatient.id ? data.patient! : patient
           )
         );
         handleDrawerClose();
@@ -127,7 +127,7 @@ export default function PatientDashboard(): React.JSX.Element {
           isClosable: true,
         });
       } catch (error) {
-        console.log(error);
+        console.error(error);
         toast({
           title: 'Error',
           description: `There was an error updating the patient`,
@@ -149,7 +149,7 @@ export default function PatientDashboard(): React.JSX.Element {
           throw new Error('Failed to add patient');
         }
         const data = await response.json();
-        setPatients(p => [...p, data.patients[0]]);
+        setPatients(p => [...p, data.patient!]);
         toast({
           title: 'Success',
           description: 'Patient added successfully',
@@ -158,7 +158,7 @@ export default function PatientDashboard(): React.JSX.Element {
           isClosable: true,
         });
       } catch (error) {
-        console.log(error);
+        console.error(error);
         toast({
           title: 'Error',
           description: 'There was an error adding the patient',

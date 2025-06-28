@@ -18,8 +18,17 @@ import {
   AlertDialogFooter,
   Box,
   Flex,
+  Text,
+  Badge,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
 } from '@chakra-ui/react';
 import { Patient, PatientFormData } from '@/types/patient';
+import { getStatusColorScheme } from '@/utils/statusColor';
 
 interface PatientEditPanelProps {
   isOpen: boolean;
@@ -31,6 +40,10 @@ interface PatientEditPanelProps {
   handleFormSubmit: () => void;
   handleDeletePatient: (id: string) => void; // eslint-disable-line
 }
+
+const getTimeZone = (): string => {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+};
 
 const PatientEditPanel: React.FC<PatientEditPanelProps> = ({
   isOpen,
@@ -45,6 +58,8 @@ const PatientEditPanel: React.FC<PatientEditPanelProps> = ({
   const cancelRef = React.useRef<HTMLButtonElement>(null);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
 
+  console.log(selectedPatient);
+
   return (
     <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="md">
       <DrawerContent>
@@ -56,7 +71,7 @@ const PatientEditPanel: React.FC<PatientEditPanelProps> = ({
             p={6}
             onClick={e => e.stopPropagation()}
           >
-            <VStack spacing={4} align="stretch">
+            <VStack spacing={3} align="stretch">
               <Heading size="md">Edit Patient</Heading>
 
               <FormControl isRequired>
@@ -112,13 +127,55 @@ const PatientEditPanel: React.FC<PatientEditPanelProps> = ({
               <FormControl isRequired>
                 <FormLabel>Address</FormLabel>
                 <Textarea
-                  rows={3}
+                  rows={1}
                   placeholder="Enter address"
                   value={formData.address || ''}
                   onChange={e => updateFormField('address', e.target.value)}
                 />
               </FormControl>
-
+              <Box pt={2} pb={2} mb={4}>
+                {selectedPatient.statusHistory.length > 0 && (
+                  <Table size="sm" variant="simple">
+                    <Thead>
+                      <Tr>
+                        <Th>Status</Th>
+                        <Th>Date</Th>
+                        <Th>Time</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {selectedPatient.statusHistory.map(s => (
+                        <Tr key={s.id}>
+                          <Td>
+                            <Badge colorScheme={getStatusColorScheme(s.status)}>
+                              {s.status}
+                            </Badge>
+                          </Td>
+                          <Td>
+                            {new Date(s.createdAt).toLocaleDateString(
+                              navigator.language,
+                              {
+                                timeZone: getTimeZone(),
+                              }
+                            )}
+                          </Td>
+                          <Td>
+                            {new Date(s.createdAt).toLocaleTimeString(
+                              navigator.language,
+                              {
+                                timeZone: getTimeZone(),
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              }
+                            )}
+                          </Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                )}
+              </Box>
               <Box pt={2}>
                 <Flex justify="space-between" align="center">
                   <Button
