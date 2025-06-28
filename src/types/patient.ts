@@ -6,6 +6,20 @@ export interface Patient {
   dateOfBirth: string;
   status: 'Inquiry' | 'Onboarding' | 'Active' | 'Churned';
   address: string;
+  providerId: string;
+  statusUpdates: PatientStatusUpdate[];
+}
+
+export interface Provider {
+  id: string;
+  userName: string;
+  password: string;
+}
+
+export interface PatientStatusUpdate {
+  patientId: string;
+  status: 'Inquiry' | 'Onboarding' | 'Active' | 'Churned';
+  createdAt: string;
 }
 
 export interface PatientFormData {

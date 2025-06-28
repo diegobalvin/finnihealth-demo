@@ -88,7 +88,7 @@ export default function PatientDashboard(): React.JSX.Element {
       return;
     }
 
-    const patientData: PatientFormData = {
+    const patientFormData: PatientFormData = {
       firstName: formData.firstName!,
       middleName: formData.middleName,
       lastName: formData.lastName!,
@@ -99,17 +99,23 @@ export default function PatientDashboard(): React.JSX.Element {
 
     if (selectedPatient) {
       try {
+        // update patient
         const response = await fetch(`/api/patients/`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...patientData, id: selectedPatient.id }),
+          body: JSON.stringify({
+            ...patientFormData,
+            id: selectedPatient.id,
+            isStatusUpdate: selectedPatient.status !== formData.status,
+          }),
         });
-        await response.json();
+        if (!response.ok) {
+          throw new Error('Failed to update patient');
+        }
+        const data = await response.json();
         setPatients(p =>
           p.map(patient =>
-            patient.id === selectedPatient.id
-              ? { ...patient, ...patientData }
-              : patient
+            patient.id === selectedPatient.id ? data.patients[0] : patient
           )
         );
         handleDrawerClose();
@@ -121,27 +127,29 @@ export default function PatientDashboard(): React.JSX.Element {
           isClosable: true,
         });
       } catch (error) {
+        console.log(error);
         toast({
           title: 'Error',
-          description: `There was an error updating the patient: ${error}`,
+          description: `There was an error updating the patient`,
           status: 'error',
           duration: 3000,
           isClosable: true,
         });
       }
     } else {
-      const newPatient: Patient = {
-        ...patientData,
-        id: Date.now().toString(),
-      };
+      // add new patient
+
       try {
         const response = await fetch(`/api/patients/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...patientData, id: newPatient.id }),
+          body: JSON.stringify({ ...patientFormData }),
         });
+        if (!response.ok) {
+          throw new Error('Failed to add patient');
+        }
         const data = await response.json();
-        setPatients(p => [...p, ...data.patients]);
+        setPatients(p => [...p, data.patients[0]]);
         toast({
           title: 'Success',
           description: 'Patient added successfully',
@@ -150,9 +158,10 @@ export default function PatientDashboard(): React.JSX.Element {
           isClosable: true,
         });
       } catch (error) {
+        console.log(error);
         toast({
           title: 'Error',
-          description: `There was an error adding the patient: ${error}`,
+          description: 'There was an error adding the patient',
           status: 'error',
           duration: 3000,
           isClosable: true,
@@ -169,7 +178,9 @@ export default function PatientDashboard(): React.JSX.Element {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
-      await response.json();
+      if (!response.ok) {
+        throw new Error('Failed to delete patient');
+      }
       setPatients(p => p.filter(p => p.id !== id));
       toast({
         title: 'Success',
@@ -179,9 +190,10 @@ export default function PatientDashboard(): React.JSX.Element {
         isClosable: true,
       });
     } catch (error) {
+      console.log(error);
       toast({
         title: 'Error',
-        description: `There was an error deleting the patient: ${error}`,
+        description: 'There was an error deleting the patient',
         status: 'error',
         duration: 3000,
         isClosable: true,
