@@ -7,7 +7,7 @@ export interface Patient {
   status: 'Inquiry' | 'Onboarding' | 'Active' | 'Churned';
   address: string;
   providerId: string;
-  statusUpdates: PatientStatusUpdate[];
+  statusUpdates: StatusUpdate[];
 }
 
 export interface Provider {
@@ -16,7 +16,8 @@ export interface Provider {
   password: string;
 }
 
-export interface PatientStatusUpdate {
+export interface StatusUpdate {
+  id: string;
   patientId: string;
   status: 'Inquiry' | 'Onboarding' | 'Active' | 'Churned';
   createdAt: string;

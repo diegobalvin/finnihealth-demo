@@ -1,4 +1,4 @@
-import { Patient } from '@/types/patient';
+import { Patient, StatusUpdate } from '@/types/patient';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 
@@ -9,35 +9,44 @@ const supabase = createClient(supabaseUrl!, supabaseKey!);
 
 type ResponseData = {
   message: string;
-  patients: Patient[];
+  patients?: Patient[];
+  patient?: Patient;
 };
 
+const hasRequiredFields = (patient: Patient): boolean => {
+  return Boolean(
+    patient.firstName &&
+      patient.lastName &&
+      patient.dateOfBirth &&
+      patient.status &&
+      patient.address &&
+      patient.providerId
+  );
+};
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
   if (req.method === 'GET') {
     // read all patients and status updates from database
-    const { data: items, error } = await supabase
+    const { data, error } = await supabase
       .from('patients')
       .select('*, status_update(*)');
 
     if (error) {
-      res
-        .status(500)
-        .json({ message: `Error fetching items: ${error}`, patients: [] });
+      res.status(500).json({ message: `Error fetching patients` });
       return;
     }
 
-    const patients = items.map((item: any) => ({
-      id: item.id,
-      firstName: item.first_name,
-      lastName: item.last_name,
-      dateOfBirth: item.date_of_birth,
-      status: item.status,
-      address: item.address,
-      providerId: item.provider_id,
-      statusUpdates: item.status_update,
+    const patients = data.map((p: any) => ({
+      id: p.id,
+      firstName: p.first_name,
+      lastName: p.last_name,
+      dateOfBirth: p.date_of_birth,
+      status: p.status,
+      address: p.address,
+      providerId: p.provider_id,
+      statusUpdates: p.status_update,
     }));
 
     res
@@ -48,6 +57,11 @@ export default async function handler(
     const patient =
       typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
+    if (!hasRequiredFields(patient)) {
+      res.status(400).json({ message: 'Missing required patient fields' });
+      return;
+    }
+    // add patient to database
     const { data: patientData, error: patientError } = await supabase
       .from('patients')
       .insert([
@@ -63,8 +77,12 @@ export default async function handler(
       ])
       .select();
 
-    if (patientError || !patientData || patientData.length === 0) {
-      res.status(500).json({ message: 'Error adding patient', patients: [] });
+    if (patientError) {
+      res.status(500).json({ message: 'Error adding patient' });
+      return;
+    }
+    if (!patientData || patientData.length === 0) {
+      res.status(500).json({ message: 'Patient was not created as expected' });
       return;
     }
     const newPatient: Patient = {
@@ -77,6 +95,7 @@ export default async function handler(
       providerId: patientData[0].provider_id,
       statusUpdates: [],
     };
+    // add status update to database
     const { data: statusUpdateData, error: statusUpdateError } = await supabase
       .from('status_update')
       .insert([{ patient_id: newPatient.id, status: newPatient.status }])
@@ -87,27 +106,31 @@ export default async function handler(
       !statusUpdateData ||
       statusUpdateData.length === 0
     ) {
-      res.status(500).json({
-        message: 'Error adding status update',
-        patients: [],
-      });
+      res.status(500).json({ message: 'Error adding status update' });
       return;
     }
-    const newStatusUpdate = {
+    const newStatusUpdate: StatusUpdate = {
+      id: statusUpdateData[0].id,
       patientId: statusUpdateData[0].patient_id,
       status: statusUpdateData[0].status,
       createdAt: statusUpdateData[0].created_at,
     };
 
-    res.status(200).json({
+    res.status(201).json({
       message: 'Patient added successfully',
-      patients: [{ ...newPatient, statusUpdates: [newStatusUpdate] }],
+      patient: { ...newPatient, statusUpdates: [newStatusUpdate] },
     });
   } else if (req.method === 'PUT') {
     // update in database
     const patient =
       typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
+    if (!hasRequiredFields(patient)) {
+      res.status(400).json({ message: 'Missing required patient fields' });
+      return;
+    }
+
+    // add status update to database
     if (patient.isStatusUpdate) {
       const { data: statusUpdateData, error: statusUpdateError } =
         await supabase
@@ -124,13 +147,12 @@ export default async function handler(
         !statusUpdateData ||
         statusUpdateData.length === 0
       ) {
-        res
-          .status(500)
-          .json({ message: 'Error updating status update', patients: [] });
+        res.status(500).json({ message: 'Error updating status update' });
         return;
       }
     }
 
+    // update patient in database
     const { data: patientData, error: patientError } = await supabase
       .from('patients')
       .update({
@@ -145,7 +167,11 @@ export default async function handler(
       .select('*, status_update(*)');
 
     if (patientError) {
-      res.status(500).json({ message: 'Error updating patient', patients: [] });
+      res.status(500).json({ message: 'Error updating patient' });
+      return;
+    }
+    if (!patientData || patientData.length === 0 || !patientData[0]) {
+      res.status(404).json({ message: 'Patient not found' });
       return;
     }
     const updatedPatient: Patient = {
@@ -160,38 +186,60 @@ export default async function handler(
     };
     res.status(200).json({
       message: 'Patient updated successfully',
-      patients: [updatedPatient],
+      patient: updatedPatient,
     });
   } else if (req.method === 'DELETE') {
-    // delete from database
     const patient =
       typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
+    if (!patient.id) {
+      res.status(400).json({ message: 'Patient ID is required' });
+      return;
+    }
+    // delete status updates first
     const { error: statusUpdateError } = await supabase
       .from('status_update')
       .delete()
       .eq('patient_id', patient.id);
 
     if (statusUpdateError) {
-      res
-        .status(500)
-        .json({ message: 'Error deleting status update', patients: [] });
+      res.status(500).json({ message: 'Error deleting status update' });
       return;
     }
 
-    const { error: patientError } = await supabase
+    // delete patient
+    const { data: deletedPatients, error: patientError } = await supabase
       .from('patients')
       .delete()
-      .eq('id', patient.id);
+      .eq('id', patient.id)
+      .select('*, status_update(*)');
 
     if (patientError) {
-      res.status(500).json({ message: 'Error deleting patient', patients: [] });
+      res.status(500).json({ message: 'Error deleting patient' });
       return;
     }
+    if (!deletedPatients || deletedPatients.length === 0) {
+      res.status(404).json({ message: 'Patient not found' });
+      return;
+    }
+
+    const deletedPatient: Patient = {
+      id: deletedPatients[0].id,
+      firstName: deletedPatients[0].first_name,
+      lastName: deletedPatients[0].last_name,
+      dateOfBirth: deletedPatients[0].date_of_birth,
+      status: deletedPatients[0].status,
+      address: deletedPatients[0].address,
+      providerId: deletedPatients[0].provider_id,
+      statusUpdates: deletedPatients[0].status_update,
+    };
 
     res.status(200).json({
       message: 'Patient deleted successfully',
-      patients: [],
+      patient: deletedPatient,
     });
+  } else {
+    res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+    res.status(405).json({ message: `Method ${req.method} Not Allowed` });
   }
 }
