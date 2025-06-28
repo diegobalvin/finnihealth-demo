@@ -4,7 +4,7 @@ import { Patient } from '@/types/patient';
 
 interface PatientListProps {
   patients: Patient[];
-  onSelectPatient: (patient: Patient) => void;
+  onSelectPatient: (patient: Patient) => void; // eslint-disable-line
   selectedPatientId?: string;
 }
 

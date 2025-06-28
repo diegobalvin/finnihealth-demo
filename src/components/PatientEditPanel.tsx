@@ -26,10 +26,10 @@ interface PatientEditPanelProps {
   onClose: () => void;
   selectedPatient: Patient | null;
   formData: Partial<PatientFormData>;
-  updateFormField: (field: keyof PatientFormData, value: string) => void;
+  updateFormField: (field: keyof PatientFormData, value: string) => void; // eslint-disable-line
   handleFormCancel: () => void;
   handleFormSubmit: () => void;
-  handleDeletePatient: (id: string) => void;
+  handleDeletePatient: (id: string) => void; // eslint-disable-line
 }
 
 const PatientEditPanel: React.FC<PatientEditPanelProps> = ({

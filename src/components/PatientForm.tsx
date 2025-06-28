@@ -16,7 +16,7 @@ import { PatientFormData } from '@/types/patient';
 interface PatientFormProps {
   isOpen: boolean;
   formData: Partial<PatientFormData>;
-  onFormDataChange: (data: Partial<PatientFormData>) => void;
+  onFormDataChange: (data: Partial<PatientFormData>) => void; // eslint-disable-line
   onSubmit: () => void;
   onCancel: () => void;
 }

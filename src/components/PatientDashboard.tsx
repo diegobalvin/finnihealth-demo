@@ -104,7 +104,7 @@ export default function PatientDashboard(): React.JSX.Element {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...patientData, id: selectedPatient.id }),
         });
-        const _ = await response.json();
+        await response.json();
         setPatients(p =>
           p.map(patient =>
             patient.id === selectedPatient.id
@@ -123,7 +123,7 @@ export default function PatientDashboard(): React.JSX.Element {
       } catch (error) {
         toast({
           title: 'Error',
-          description: 'There was an error updating the patient',
+          description: `There was an error updating the patient: ${error}`,
           status: 'error',
           duration: 3000,
           isClosable: true,
@@ -152,7 +152,7 @@ export default function PatientDashboard(): React.JSX.Element {
       } catch (error) {
         toast({
           title: 'Error',
-          description: 'There was an error adding the patient',
+          description: `There was an error adding the patient: ${error}`,
           status: 'error',
           duration: 3000,
           isClosable: true,
@@ -169,7 +169,7 @@ export default function PatientDashboard(): React.JSX.Element {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
-      const _ = await response.json();
+      await response.json();
       setPatients(p => p.filter(p => p.id !== id));
       toast({
         title: 'Success',
@@ -181,7 +181,7 @@ export default function PatientDashboard(): React.JSX.Element {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'There was an error deleting the patient',
+        description: `There was an error deleting the patient: ${error}`,
         status: 'error',
         duration: 3000,
         isClosable: true,
