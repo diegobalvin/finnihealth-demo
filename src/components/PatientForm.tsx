@@ -11,11 +11,10 @@ import {
   FormLabel,
   Select,
 } from '@chakra-ui/react';
-import { Patient, PatientFormData } from '@/types/patient';
+import { PatientFormData } from '@/types/patient';
 
 interface PatientFormProps {
   isOpen: boolean;
-  editingPatient: Patient | null;
   formData: Partial<PatientFormData>;
   onFormDataChange: (data: Partial<PatientFormData>) => void;
   onSubmit: () => void;
@@ -24,7 +23,6 @@ interface PatientFormProps {
 
 const PatientForm: React.FC<PatientFormProps> = ({
   isOpen,
-  editingPatient,
   formData,
   onFormDataChange,
   onSubmit,
@@ -60,10 +58,7 @@ const PatientForm: React.FC<PatientFormProps> = ({
         onClick={e => e.stopPropagation()}
       >
         <VStack spacing={4} align="stretch">
-          <Heading size="md">
-            {editingPatient ? 'Edit Patient' : 'Add New Patient'}
-          </Heading>
-
+          <Heading size="md">{'Add New Patient'}</Heading>
           <FormControl isRequired>
             <FormLabel>First Name</FormLabel>
             <Input
@@ -127,7 +122,7 @@ const PatientForm: React.FC<PatientFormProps> = ({
           <HStack spacing={3} justify="flex-end">
             <Button onClick={onCancel}>Cancel</Button>
             <Button colorScheme="blue" onClick={onSubmit}>
-              {editingPatient ? 'Update' : 'Add'}
+              Add
             </Button>
           </HStack>
         </VStack>

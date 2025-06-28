@@ -2332,7 +2332,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-react@npm:^7.37.0":
+"eslint-plugin-react@npm:^7.37.0, eslint-plugin-react@npm:^7.37.5":
   version: 7.37.5
   resolution: "eslint-plugin-react@npm:7.37.5"
   dependencies:
@@ -2605,6 +2605,7 @@ __metadata:
     eslint-config-next: "npm:^15.3.4"
     eslint-config-prettier: "npm:^10.1.5"
     eslint-plugin-prettier: "npm:^5.5.1"
+    eslint-plugin-react: "npm:^7.37.5"
     framer-motion: "npm:^6"
     next: "npm:^15.3.4"
     prettier: "npm:^3.6.2"

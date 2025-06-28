@@ -8,20 +8,15 @@ import {
   useDisclosure,
   useToast,
   Flex,
-  Drawer,
-  DrawerOverlay,
-  DrawerContent,
-  DrawerCloseButton,
-  DrawerHeader,
-  DrawerBody,
 } from '@chakra-ui/react';
 import { Patient, PatientFormData } from '@/types/patient';
 import PatientList from './PatientList';
 import PatientForm from './PatientForm';
-import PatientCard from './PatientCard';
+import PatientEditPanel from './PatientEditPanel';
 
 export default function PatientDashboard(): React.JSX.Element {
   const [patients, setPatients] = useState<Patient[]>([]);
+  const cancelRef = React.useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -34,7 +29,6 @@ export default function PatientDashboard(): React.JSX.Element {
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
-  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [formData, setFormData] = useState<Partial<PatientFormData>>({});
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const {
@@ -43,27 +37,27 @@ export default function PatientDashboard(): React.JSX.Element {
     onClose: closeDrawer,
   } = useDisclosure();
 
+  useEffect(() => {
+    if (selectedPatient) {
+      setFormData({
+        firstName: selectedPatient.firstName,
+        middleName: selectedPatient.middleName,
+        lastName: selectedPatient.lastName,
+        dateOfBirth: selectedPatient.dateOfBirth
+          ? selectedPatient.dateOfBirth.slice(0, 10)
+          : '',
+        status: selectedPatient.status,
+        address: selectedPatient.address,
+      });
+    }
+  }, [selectedPatient]);
+
   const handleAddPatient = (): void => {
-    setEditingPatient(null);
     setFormData({});
     onOpen();
   };
 
-  const handleEditPatient = (patient: Patient): void => {
-    setEditingPatient(patient);
-    setFormData({
-      firstName: patient.firstName,
-      middleName: patient.middleName,
-      lastName: patient.lastName,
-      dateOfBirth: patient.dateOfBirth,
-      status: patient.status,
-      address: patient.address,
-    });
-    onOpen();
-  };
-
   const handleFormCancel = (): void => {
-    setEditingPatient(null);
     setFormData({});
     onClose();
   };
@@ -99,21 +93,22 @@ export default function PatientDashboard(): React.JSX.Element {
       address: formData.address!,
     };
 
-    if (editingPatient) {
+    if (selectedPatient) {
       try {
         const response = await fetch(`/api/patients/`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...patientData, id: editingPatient.id }),
+          body: JSON.stringify({ ...patientData, id: selectedPatient.id }),
         });
         const _ = await response.json();
         setPatients(p =>
           p.map(patient =>
-            patient.id === editingPatient.id
+            patient.id === selectedPatient.id
               ? { ...patient, ...patientData }
               : patient
           )
         );
+        handleDrawerClose();
         toast({
           title: 'Success',
           description: 'Patient updated successfully',
@@ -201,11 +196,15 @@ export default function PatientDashboard(): React.JSX.Element {
     closeDrawer();
   };
 
+  const updateFormField = (field: keyof PatientFormData, value: string) => {
+    handleFormDataChange({ ...formData, [field]: value });
+  };
+
   return (
     <Box minH="100vh" bg="gray.50">
       <Box bg="white" px={6} py={4} borderBottom="1px" borderColor="gray.200">
         <Heading size="lg" color="blue.500">
-          Finnihealth Patient Management
+          Finni Health Patient Management
         </Heading>
       </Box>
 
@@ -220,39 +219,25 @@ export default function PatientDashboard(): React.JSX.Element {
           <Box flex={1} minW="350px">
             <PatientList
               patients={patients}
-              onEditPatient={handleEditPatient}
-              onDeletePatient={handleDeletePatient}
               onSelectPatient={handleSelectPatient}
               selectedPatientId={selectedPatient?.id}
             />
           </Box>
         </Flex>
 
-        <Drawer
+        <PatientEditPanel
           isOpen={isDrawerOpen}
-          placement="right"
           onClose={handleDrawerClose}
-          size="md"
-        >
-          <DrawerOverlay />
-          <DrawerContent>
-            <DrawerCloseButton />
-            <DrawerHeader>Patient Details</DrawerHeader>
-            <DrawerBody>
-              {selectedPatient && (
-                <PatientCard
-                  patient={selectedPatient}
-                  onEdit={handleEditPatient}
-                  onDelete={handleDeletePatient}
-                />
-              )}
-            </DrawerBody>
-          </DrawerContent>
-        </Drawer>
+          selectedPatient={selectedPatient}
+          formData={formData}
+          updateFormField={updateFormField}
+          handleFormCancel={handleFormCancel}
+          handleFormSubmit={handleFormSubmit}
+          handleDeletePatient={handleDeletePatient}
+        />
 
         <PatientForm
           isOpen={isOpen}
-          editingPatient={editingPatient}
           formData={formData}
           onFormDataChange={handleFormDataChange}
           onSubmit={handleFormSubmit}

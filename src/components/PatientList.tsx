@@ -4,16 +4,12 @@ import { Patient } from '@/types/patient';
 
 interface PatientListProps {
   patients: Patient[];
-  onEditPatient: (patient: Patient) => void;
-  onDeletePatient: (id: string) => void;
   onSelectPatient: (patient: Patient) => void;
   selectedPatientId?: string;
 }
 
 const PatientList: React.FC<PatientListProps> = ({
   patients,
-  onEditPatient,
-  onDeletePatient,
   onSelectPatient,
   selectedPatientId,
 }) => {
@@ -39,8 +35,12 @@ const PatientList: React.FC<PatientListProps> = ({
                 _hover={{ bg: 'gray.100', cursor: 'pointer' }}
                 onClick={() => onSelectPatient(patient)}
               >
-                <Td fontWeight={isSelected ? 'bold' : 'normal'}>{fullName}</Td>
-                <Td>{new Date(patient.dateOfBirth).toLocaleDateString()}</Td>
+                <Td fontWeight="normal">{fullName}</Td>
+                <Td>
+                  {new Date(patient.dateOfBirth).toLocaleDateString('en-US', {
+                    timeZone: 'UTC',
+                  })}
+                </Td>
                 <Td>{patient.address}</Td>
                 <Td>
                   <Badge
