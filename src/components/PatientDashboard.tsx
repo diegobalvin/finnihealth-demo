@@ -16,7 +16,6 @@ import PatientEditPanel from './PatientEditPanel';
 
 export default function PatientDashboard(): React.JSX.Element {
   const [patients, setPatients] = useState<Patient[]>([]);
-  const cancelRef = React.useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -27,15 +26,20 @@ export default function PatientDashboard(): React.JSX.Element {
     fetchPatients();
   }, []);
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const toast = useToast();
-  const [formData, setFormData] = useState<Partial<PatientFormData>>({});
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const {
+    isOpen: isModalOpen,
+    onOpen: openModal,
+    onClose: closeModal,
+  } = useDisclosure();
   const {
     isOpen: isDrawerOpen,
     onOpen: openDrawer,
     onClose: closeDrawer,
   } = useDisclosure();
+  const toast = useToast();
+
+  const [formData, setFormData] = useState<Partial<PatientFormData>>({});
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
   useEffect(() => {
     if (selectedPatient) {
@@ -54,12 +58,12 @@ export default function PatientDashboard(): React.JSX.Element {
 
   const handleAddPatient = (): void => {
     setFormData({});
-    onOpen();
+    openModal();
   };
 
   const handleFormCancel = (): void => {
     setFormData({});
-    onClose();
+    closeModal();
   };
 
   const handleFormDataChange = (data: Partial<PatientFormData>): void => {
@@ -155,7 +159,6 @@ export default function PatientDashboard(): React.JSX.Element {
         });
       }
     }
-
     handleFormCancel();
   };
 
@@ -193,6 +196,7 @@ export default function PatientDashboard(): React.JSX.Element {
 
   const handleDrawerClose = () => {
     setSelectedPatient(null);
+    setFormData({});
     closeDrawer();
   };
 
@@ -231,13 +235,13 @@ export default function PatientDashboard(): React.JSX.Element {
           selectedPatient={selectedPatient}
           formData={formData}
           updateFormField={updateFormField}
-          handleFormCancel={handleFormCancel}
+          handleFormCancel={handleDrawerClose}
           handleFormSubmit={handleFormSubmit}
           handleDeletePatient={handleDeletePatient}
         />
 
         <PatientForm
-          isOpen={isOpen}
+          isOpen={isModalOpen}
           formData={formData}
           onFormDataChange={handleFormDataChange}
           onSubmit={handleFormSubmit}

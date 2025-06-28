@@ -39,6 +39,7 @@ const PatientEditPanel: React.FC<PatientEditPanelProps> = ({
   formData,
   updateFormField,
   handleFormSubmit,
+  handleFormCancel,
   handleDeletePatient,
 }) => {
   const cancelRef = React.useRef<HTMLButtonElement>(null);
@@ -127,9 +128,12 @@ const PatientEditPanel: React.FC<PatientEditPanelProps> = ({
                   >
                     Delete
                   </Button>
-                  <Button colorScheme="blue" onClick={handleFormSubmit}>
-                    Update
-                  </Button>
+                  <Flex gap={3} justify="flex-end">
+                    <Button onClick={handleFormCancel}>Cancel</Button>
+                    <Button colorScheme="blue" onClick={handleFormSubmit}>
+                      Save
+                    </Button>
+                  </Flex>
                 </Flex>
               </Box>
             </VStack>
