@@ -60,8 +60,10 @@ const PatientEditPanel: React.FC<PatientEditPanelProps> = ({
   const handleSubmit = () => {
     const newErrors = validateForm(formData);
     setErrors(newErrors);
-
     if (isFormValid(newErrors)) {
+      // TODO: check if the formData is different from the selectedPatient
+      // if it is, submit
+      // if it is not, don't submit
       handleFormSubmit();
     }
   };

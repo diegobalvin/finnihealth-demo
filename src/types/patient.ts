@@ -10,6 +10,7 @@ export interface Patient {
   statusHistory: StatusUpdate[];
 }
 
+// TODO: Add provider interface and login functionality
 export interface Provider {
   id: string;
   userName: string;
