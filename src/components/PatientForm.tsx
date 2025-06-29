@@ -1,39 +1,45 @@
-import React from 'react';
-import {
-  Box,
-  Heading,
-  Button,
-  Input,
-  Textarea,
-  HStack,
-  VStack,
-  FormControl,
-  FormLabel,
-  Select,
-} from '@chakra-ui/react';
-import { Patient, PatientFormData } from '@/types/patient';
+import React, { useState, useEffect } from 'react';
+import { Box, Heading, Button, HStack, VStack } from '@chakra-ui/react';
+import { PatientFormData } from '@/types/patient';
+import PatientFormFields from './PatientFormFields';
+import { validateForm, isFormValid } from '@/utils/formValidation';
 
 interface PatientFormProps {
   isOpen: boolean;
-  editingPatient: Patient | null;
   formData: Partial<PatientFormData>;
-  onFormDataChange: (data: Partial<PatientFormData>) => void;
+  onFormDataChange: (data: Partial<PatientFormData>) => void; // eslint-disable-line
   onSubmit: () => void;
   onCancel: () => void;
 }
 
 const PatientForm: React.FC<PatientFormProps> = ({
   isOpen,
-  editingPatient,
   formData,
   onFormDataChange,
   onSubmit,
   onCancel,
 }) => {
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof PatientFormData, string>>
+  >({});
+
+  useEffect(() => {
+    setErrors({});
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const updateFormField = (field: keyof PatientFormData, value: string) => {
     onFormDataChange({ ...formData, [field]: value });
+  };
+
+  const handleSubmit = () => {
+    const newErrors = validateForm(formData);
+    setErrors(newErrors);
+
+    if (isFormValid(newErrors)) {
+      onSubmit();
+    }
   };
 
   return (
@@ -60,74 +66,19 @@ const PatientForm: React.FC<PatientFormProps> = ({
         onClick={e => e.stopPropagation()}
       >
         <VStack spacing={4} align="stretch">
-          <Heading size="md">
-            {editingPatient ? 'Edit Patient' : 'Add New Patient'}
-          </Heading>
+          <Heading size="md">{'Add New Patient'}</Heading>
 
-          <FormControl isRequired>
-            <FormLabel>First Name</FormLabel>
-            <Input
-              placeholder="Enter first name"
-              value={formData.firstName || ''}
-              onChange={e => updateFormField('firstName', e.target.value)}
-            />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>Middle Name</FormLabel>
-            <Input
-              placeholder="Enter middle name (optional)"
-              value={formData.middleName || ''}
-              onChange={e => updateFormField('middleName', e.target.value)}
-            />
-          </FormControl>
-
-          <FormControl isRequired>
-            <FormLabel>Last Name</FormLabel>
-            <Input
-              placeholder="Enter last name"
-              value={formData.lastName || ''}
-              onChange={e => updateFormField('lastName', e.target.value)}
-            />
-          </FormControl>
-
-          <FormControl isRequired>
-            <FormLabel>Date of Birth</FormLabel>
-            <Input
-              type="date"
-              value={formData.dateOfBirth || ''}
-              onChange={e => updateFormField('dateOfBirth', e.target.value)}
-            />
-          </FormControl>
-
-          <FormControl isRequired>
-            <FormLabel>Status</FormLabel>
-            <Select
-              placeholder="Select status"
-              value={formData.status || ''}
-              onChange={e => updateFormField('status', e.target.value)}
-            >
-              <option value="Inquiry">Inquiry</option>
-              <option value="Onboarding">Onboarding</option>
-              <option value="Active">Active</option>
-              <option value="Churned">Churned</option>
-            </Select>
-          </FormControl>
-
-          <FormControl isRequired>
-            <FormLabel>Address</FormLabel>
-            <Textarea
-              rows={3}
-              placeholder="Enter address"
-              value={formData.address || ''}
-              onChange={e => updateFormField('address', e.target.value)}
-            />
-          </FormControl>
+          <PatientFormFields
+            formData={formData}
+            errors={errors}
+            updateFormField={updateFormField}
+            setErrors={setErrors}
+          />
 
           <HStack spacing={3} justify="flex-end">
             <Button onClick={onCancel}>Cancel</Button>
-            <Button colorScheme="blue" onClick={onSubmit}>
-              {editingPatient ? 'Update' : 'Add'}
+            <Button colorScheme="blue" onClick={handleSubmit}>
+              Add
             </Button>
           </HStack>
         </VStack>
