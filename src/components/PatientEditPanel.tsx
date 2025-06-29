@@ -1,13 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Drawer,
   DrawerContent,
   VStack,
-  FormControl,
-  Textarea,
-  FormLabel,
-  Select,
-  Input,
   Button,
   Heading,
   AlertDialog,
@@ -28,6 +23,8 @@ import {
 } from '@chakra-ui/react';
 import { Patient, PatientFormData } from '@/types/patient';
 import { getStatusColorScheme } from '@/utils/statusColor';
+import PatientFormFields from './PatientFormFields';
+import { validateForm, isFormValid } from '@/utils/formValidation';
 
 interface PatientEditPanelProps {
   isOpen: boolean;
@@ -55,7 +52,23 @@ const PatientEditPanel: React.FC<PatientEditPanelProps> = ({
   handleDeletePatient,
 }) => {
   const cancelRef = React.useRef<HTMLButtonElement>(null);
-  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof PatientFormData, string>>
+  >({});
+
+  const handleSubmit = () => {
+    const newErrors = validateForm(formData);
+    setErrors(newErrors);
+
+    if (isFormValid(newErrors)) {
+      handleFormSubmit();
+    }
+  };
+
+  useEffect(() => {
+    setErrors({});
+  }, [selectedPatient]);
 
   return (
     <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="md">
@@ -71,70 +84,13 @@ const PatientEditPanel: React.FC<PatientEditPanelProps> = ({
             <VStack spacing={3} align="stretch">
               <Heading size="md">Edit Patient</Heading>
 
-              <FormControl isRequired>
-                <FormLabel>First Name</FormLabel>
-                <Input
-                  isInvalid={!formData.firstName}
-                  placeholder="Enter first name"
-                  value={formData.firstName || ''}
-                  onChange={e => updateFormField('firstName', e.target.value)}
-                />
-              </FormControl>
+              <PatientFormFields
+                formData={formData}
+                errors={errors}
+                updateFormField={updateFormField}
+                setErrors={setErrors}
+              />
 
-              <FormControl>
-                <FormLabel>Middle Name</FormLabel>
-                <Input
-                  placeholder="Enter middle name (optional)"
-                  value={formData.middleName || ''}
-                  onChange={e => updateFormField('middleName', e.target.value)}
-                />
-              </FormControl>
-
-              <FormControl isRequired>
-                <FormLabel>Last Name</FormLabel>
-                <Input
-                  isInvalid={!formData.lastName}
-                  placeholder="Enter last name"
-                  value={formData.lastName || ''}
-                  onChange={e => updateFormField('lastName', e.target.value)}
-                />
-              </FormControl>
-
-              <FormControl isRequired>
-                <FormLabel>Date of Birth</FormLabel>
-                <Input
-                  type="date"
-                  isInvalid={!formData.dateOfBirth}
-                  value={formData.dateOfBirth || ''}
-                  onChange={e => updateFormField('dateOfBirth', e.target.value)}
-                />
-              </FormControl>
-
-              <FormControl isRequired>
-                <FormLabel>Status</FormLabel>
-                <Select
-                  isInvalid={!formData.status}
-                  placeholder="Select status"
-                  value={formData.status || ''}
-                  onChange={e => updateFormField('status', e.target.value)}
-                >
-                  <option value="Inquiry">Inquiry</option>
-                  <option value="Onboarding">Onboarding</option>
-                  <option value="Active">Active</option>
-                  <option value="Churned">Churned</option>
-                </Select>
-              </FormControl>
-
-              <FormControl isRequired>
-                <FormLabel>Address</FormLabel>
-                <Textarea
-                  isInvalid={!formData.address}
-                  rows={1}
-                  placeholder="Enter address"
-                  value={formData.address || ''}
-                  onChange={e => updateFormField('address', e.target.value)}
-                />
-              </FormControl>
               <Box pt={2} pb={2}>
                 {selectedPatient.statusHistory.length > 0 && (
                   <Table size="sm" variant="simple">
@@ -189,7 +145,7 @@ const PatientEditPanel: React.FC<PatientEditPanelProps> = ({
                   </Button>
                   <Flex gap={3} justify="flex-end">
                     <Button onClick={handleFormCancel}>Cancel</Button>
-                    <Button colorScheme="blue" onClick={handleFormSubmit}>
+                    <Button colorScheme="blue" onClick={handleSubmit}>
                       Save
                     </Button>
                   </Flex>
