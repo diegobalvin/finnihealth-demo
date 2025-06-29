@@ -1,6 +1,12 @@
 import { Patient, StatusUpdate } from '@/types/patient';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import {
+  validateName,
+  validateAddress,
+  validateDateOfBirth,
+  validateStatus,
+} from '@/utils/validation';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey =
@@ -32,15 +38,50 @@ export type PatientRow = {
   status_update: StatusUpdateRow[];
 };
 
-const hasRequiredFields = (patient: Patient): boolean => {
-  return Boolean(
-    patient.firstName &&
-      patient.lastName &&
-      patient.dateOfBirth &&
-      patient.status &&
-      patient.address
-  );
-};
+function validatePatientData(patient: any): string | undefined {
+  let error: string | undefined;
+  error = validateName(patient.firstName || '', 'first name');
+  if (error) return error;
+  if (patient.middleName !== undefined) {
+    error = validateName(patient.middleName, 'middle name');
+    if (error) return error;
+  }
+  error = validateName(patient.lastName || '', 'last name');
+  if (error) return error;
+  error = validateDateOfBirth(patient.dateOfBirth || '');
+  if (error) return error;
+  error = validateAddress(patient.address || '');
+  if (error) return error;
+  error = validateStatus(patient.status || '');
+  if (error) return error;
+  return undefined;
+}
+
+function mapStatusUpdateRow(s: StatusUpdateRow): StatusUpdate {
+  return {
+    id: s.id,
+    patientId: s.patient_id,
+    status: s.status as StatusUpdate['status'],
+    createdAt: s.created_at,
+  };
+}
+
+function mapPatientRow(p: PatientRow): Patient {
+  return {
+    id: p.id,
+    firstName: p.first_name,
+    middleName: p.middle_name,
+    lastName: p.last_name,
+    dateOfBirth: p.date_of_birth,
+    status: p.status as Patient['status'],
+    address: p.address,
+    providerId: p.provider_id,
+    statusHistory: ((p.status_update as StatusUpdateRow[]) || []).map(
+      mapStatusUpdateRow
+    ),
+  };
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<PatientApiResponse>
@@ -61,22 +102,9 @@ export default async function handler(
       return;
     }
 
-    const patients: Patient[] = (data as PatientRow[]).map(p => ({
-      id: p.id,
-      firstName: p.first_name,
-      middleName: p.middle_name,
-      lastName: p.last_name,
-      dateOfBirth: p.date_of_birth,
-      status: p.status as Patient['status'],
-      address: p.address,
-      providerId: p.provider_id,
-      statusHistory: (p.status_update as StatusUpdateRow[]).map(s => ({
-        id: s.id,
-        patientId: s.patient_id,
-        status: s.status as StatusUpdate['status'],
-        createdAt: s.created_at,
-      })),
-    }));
+    const patients: Patient[] = ((data as PatientRow[]) || []).map(
+      mapPatientRow
+    );
 
     res.status(200).json({
       message: 'Patients fetched successfully',
@@ -88,10 +116,20 @@ export default async function handler(
     const patient =
       typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
-    if (!hasRequiredFields(patient)) {
-      console.error('Missing required patient fields:', patient);
+    if (!patient) {
       res.status(400).json({
-        message: 'Missing required patient fields',
+        message: 'Missing patient data',
+        patients: [],
+        patient: null,
+      });
+      return;
+    }
+
+    const validationError = validatePatientData(patient);
+    if (validationError) {
+      console.error('Validation error:', validationError, patient);
+      res.status(400).json({
+        message: validationError,
         patients: [],
         patient: null,
       });
@@ -182,10 +220,20 @@ export default async function handler(
     const patient =
       typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
-    if (!hasRequiredFields(patient)) {
-      console.error('Missing required patient fields:', patient);
+    if (!patient) {
       res.status(400).json({
-        message: 'Missing required patient fields',
+        message: 'Missing patient data',
+        patients: [],
+        patient: null,
+      });
+      return;
+    }
+
+    const validationError = validatePatientData(patient);
+    if (validationError) {
+      console.error('Validation error:', validationError, patient);
+      res.status(400).json({
+        message: validationError,
         patients: [],
         patient: null,
       });
@@ -268,14 +316,9 @@ export default async function handler(
         status: updatedPatient.status,
         address: updatedPatient.address,
         providerId: updatedPatient.provider_id,
-        statusHistory: updatedPatient.status_update.map(
-          (s: StatusUpdateRow) => ({
-            id: s.id,
-            patientId: s.patient_id,
-            status: s.status,
-            createdAt: s.created_at,
-          })
-        ),
+        statusHistory: (
+          (updatedPatient.status_update as StatusUpdateRow[]) || []
+        ).map(mapStatusUpdateRow),
       },
     });
   } else if (req.method === 'DELETE') {
@@ -346,14 +389,9 @@ export default async function handler(
         status: deletedPatient.status,
         address: deletedPatient.address,
         providerId: deletedPatient.provider_id,
-        statusHistory: deletedPatient.status_update.map(
-          (s: StatusUpdateRow) => ({
-            id: s.id,
-            patientId: s.patient_id,
-            status: s.status,
-            createdAt: s.created_at,
-          })
-        ),
+        statusHistory: (
+          (deletedPatient.status_update as StatusUpdateRow[]) || []
+        ).map(mapStatusUpdateRow),
       },
     });
   } else {
