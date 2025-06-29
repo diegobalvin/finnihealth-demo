@@ -295,9 +295,9 @@ export default async function handler(
       .single();
 
     if (patientError) {
-      console.error('Error deleting patient:', patientError);
+      console.error('There was an error deleting the patient:', patientError);
       res.status(500).json({
-        message: 'Error deleting patient',
+        message: 'There was an error deleting the patient',
         patients: [],
         patient: null,
       });
@@ -306,7 +306,7 @@ export default async function handler(
     if (!deletedPatient) {
       console.error('Patient not found during delete:', deletedPatient);
       res.status(404).json({
-        message: 'Patient not found',
+        message: 'There was an error deleting the patient',
         patients: [],
         patient: null,
       });

@@ -121,13 +121,13 @@ export default function PatientDashboard(): React.JSX.Element {
         handleDrawerClose();
         toast({
           title: 'Success',
-          description: 'Patient updated successfully',
+          description: data.message,
           status: 'success',
           duration: 3000,
           isClosable: true,
         });
       } catch (error) {
-        console.error(error);
+        console.error('There was an error updating the patient:', error);
         toast({
           title: 'Error',
           description: `There was an error updating the patient`,
@@ -152,13 +152,13 @@ export default function PatientDashboard(): React.JSX.Element {
         setPatients(p => [...p, data.patient!]);
         toast({
           title: 'Success',
-          description: 'Patient added successfully',
+          description: data.message,
           status: 'success',
           duration: 3000,
           isClosable: true,
         });
       } catch (error) {
-        console.error(error);
+        console.error('There was an error adding the patient:', error);
         toast({
           title: 'Error',
           description: 'There was an error adding the patient',
@@ -181,16 +181,17 @@ export default function PatientDashboard(): React.JSX.Element {
       if (!response.ok) {
         throw new Error('Failed to delete patient');
       }
+      const data = await response.json();
       setPatients(p => p.filter(p => p.id !== id));
       toast({
         title: 'Success',
-        description: 'Patient deleted successfully',
+        description: data.message,
         status: 'success',
         duration: 3000,
         isClosable: true,
       });
     } catch (error) {
-      console.log(error);
+      console.error('There was an error deleting the patient:', error);
       toast({
         title: 'Error',
         description: 'There was an error deleting the patient',
