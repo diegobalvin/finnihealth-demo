@@ -39,8 +39,9 @@ I'm excited to share what I've built. The application is a full-stack healthcare
 ### TODOS (Things I didn't get to)
 - Login functionality! I have a many-to-one provider database  set up in postgres but I didn't get to building a sign-up/log-in page.
 - Pagination! For optimization and better UI/UX experience.
-- Certain optimizations: e.g. skipping the api call if no patient information has been updated. 
+- Certain optimizations: e.g. skipping the api call if no patient information has been updated.
 - Filtering/Searching results!
+- Address [auto-complete](https://developers.google.com/maps/documentation/javascript/examples/places-autocomplete-addressform)!
 
 
 
