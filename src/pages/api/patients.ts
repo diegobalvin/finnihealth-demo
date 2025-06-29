@@ -7,10 +7,29 @@ const supabaseKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl!, supabaseKey!);
 
-type ResponseData = {
+export type PatientApiResponse = {
   message: string;
   patients: Patient[];
   patient: Patient | null;
+};
+
+export type StatusUpdateRow = {
+  id: string;
+  patient_id: string;
+  status: string;
+  created_at: string;
+};
+
+export type PatientRow = {
+  id: string;
+  first_name: string;
+  middle_name?: string;
+  last_name: string;
+  date_of_birth: string;
+  status: string;
+  address: string;
+  provider_id: string;
+  status_update: StatusUpdateRow[];
 };
 
 const hasRequiredFields = (patient: Patient): boolean => {
@@ -24,7 +43,7 @@ const hasRequiredFields = (patient: Patient): boolean => {
 };
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<ResponseData>
+  res: NextApiResponse<PatientApiResponse>
 ) {
   if (req.method === 'GET') {
     // read all patients and status updates from database
@@ -42,19 +61,19 @@ export default async function handler(
       return;
     }
 
-    const patients = data.map((p: any) => ({
+    const patients: Patient[] = (data as PatientRow[]).map(p => ({
       id: p.id,
       firstName: p.first_name,
       middleName: p.middle_name,
       lastName: p.last_name,
       dateOfBirth: p.date_of_birth,
-      status: p.status,
+      status: p.status as Patient['status'],
       address: p.address,
       providerId: p.provider_id,
-      statusHistory: p.status_update.map((s: any) => ({
+      statusHistory: (p.status_update as StatusUpdateRow[]).map(s => ({
         id: s.id,
         patientId: s.patient_id,
-        status: s.status,
+        status: s.status as StatusUpdate['status'],
         createdAt: s.created_at,
       })),
     }));
@@ -249,12 +268,14 @@ export default async function handler(
         status: updatedPatient.status,
         address: updatedPatient.address,
         providerId: updatedPatient.provider_id,
-        statusHistory: updatedPatient.status_update.map((s: any) => ({
-          id: s.id,
-          patientId: s.patient_id,
-          status: s.status,
-          createdAt: s.created_at,
-        })),
+        statusHistory: updatedPatient.status_update.map(
+          (s: StatusUpdateRow) => ({
+            id: s.id,
+            patientId: s.patient_id,
+            status: s.status,
+            createdAt: s.created_at,
+          })
+        ),
       },
     });
   } else if (req.method === 'DELETE') {
@@ -325,12 +346,14 @@ export default async function handler(
         status: deletedPatient.status,
         address: deletedPatient.address,
         providerId: deletedPatient.provider_id,
-        statusHistory: deletedPatient.status_update.map((s: any) => ({
-          id: s.id,
-          patientId: s.patient_id,
-          status: s.status,
-          createdAt: s.created_at,
-        })),
+        statusHistory: deletedPatient.status_update.map(
+          (s: StatusUpdateRow) => ({
+            id: s.id,
+            patientId: s.patient_id,
+            status: s.status,
+            createdAt: s.created_at,
+          })
+        ),
       },
     });
   } else {

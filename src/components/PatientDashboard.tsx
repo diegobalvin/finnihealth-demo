@@ -8,24 +8,29 @@ import {
   useDisclosure,
   useToast,
   Flex,
+  Center,
+  Spinner,
 } from '@chakra-ui/react';
+
 import { Patient, PatientFormData } from '@/types/patient';
 import PatientList from './PatientList';
 import PatientForm from './PatientForm';
 import PatientEditPanel from './PatientEditPanel';
+import { PatientApiResponse } from '@/pages/api/patients';
 
 export default function PatientDashboard(): React.JSX.Element {
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchPatients = async () => {
       const response = await fetch('/api/patients');
       const data = await response.json();
       setPatients(data.patients);
+      setIsLoading(false);
     };
     fetchPatients();
   }, []);
-
   const {
     isOpen: isModalOpen,
     onOpen: openModal,
@@ -97,109 +102,131 @@ export default function PatientDashboard(): React.JSX.Element {
       address: formData.address!,
     };
 
-    if (selectedPatient) {
-      try {
-        // update patient
-        const response = await fetch(`/api/patients/`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...patientFormData,
-            id: selectedPatient.id,
-            isStatusUpdate: selectedPatient.status !== formData.status,
-          }),
-        });
-        if (!response.ok) {
-          throw new Error('Failed to update patient');
+    toast.promise(
+      (async () => {
+        let response: Response;
+        let data: PatientApiResponse;
+        if (selectedPatient) {
+          response = await fetch(`/api/patients/`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...patientFormData,
+              id: selectedPatient.id,
+              isStatusUpdate: selectedPatient.status !== formData.status,
+            }),
+          });
+          if (!response.ok) {
+            const errorMessage = 'Failed to update patient';
+            try {
+              const errorData = await response.json();
+              if (errorData.message) {
+                throw new Error(errorData.message);
+              }
+            } catch {}
+            throw new Error(errorMessage);
+          }
+          data = await response.json();
+          setPatients(p =>
+            p.map(patient =>
+              patient.id === selectedPatient.id ? data.patient! : patient
+            )
+          );
+          handleDrawerClose();
+        } else {
+          response = await fetch(`/api/patients/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...patientFormData }),
+          });
+          if (!response.ok) {
+            const errorMessage = 'Failed to add patient';
+            try {
+              const errorData = await response.json();
+              if (errorData.message) {
+                throw new Error(errorData.message);
+              }
+            } catch {}
+            throw new Error(errorMessage);
+          }
+          data = await response.json();
+          setPatients(p => [...p, data.patient!]);
+          handleFormCancel();
         }
-        const data = await response.json();
-        setPatients(p =>
-          p.map(patient =>
-            patient.id === selectedPatient.id ? data.patient! : patient
-          )
-        );
-        handleDrawerClose();
-        toast({
+        return data;
+      })(),
+      {
+        loading: {
+          title: 'Processing...',
+          description: selectedPatient
+            ? 'Updating patient...'
+            : 'Adding patient',
+        },
+        success: data => ({
           title: 'Success',
           description: data.message,
-          status: 'success',
           duration: 3000,
           isClosable: true,
-        });
-      } catch (error) {
-        console.error('There was an error updating the patient:', error);
-        toast({
-          title: 'Error',
-          description: `There was an error updating the patient`,
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
+        }),
+        error: error => {
+          console.error(error);
+          return {
+            title: 'Error',
+            description: selectedPatient
+              ? 'There was an error updating the patient'
+              : 'There was an error adding the patient',
+            duration: 3000,
+            isClosable: true,
+          };
+        },
       }
-    } else {
-      // add new patient
-
-      try {
-        const response = await fetch(`/api/patients/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...patientFormData }),
-        });
-        if (!response.ok) {
-          throw new Error('Failed to add patient');
-        }
-        const data = await response.json();
-        setPatients(p => [...p, data.patient!]);
-        toast({
-          title: 'Success',
-          description: data.message,
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
-      } catch (error) {
-        console.error('There was an error adding the patient:', error);
-        toast({
-          title: 'Error',
-          description: 'There was an error adding the patient',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
-      }
-    }
-    handleFormCancel();
+    );
   };
 
   const handleDeletePatient = async (id: string): Promise<void> => {
-    try {
-      const response = await fetch(`/api/patients/`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to delete patient');
+    toast.promise(
+      (async () => {
+        const response = await fetch(`/api/patients/`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
+        if (!response.ok) {
+          const errorMessage = 'Failed to delete patient';
+          try {
+            const errorData = await response.json();
+            if (errorData.message) {
+              throw new Error(errorData.message);
+            }
+          } catch {}
+          throw new Error(errorMessage);
+        }
+        const data = await response.json();
+        setPatients(p => p.filter(p => p.id !== id));
+        return data;
+      })(),
+      {
+        loading: {
+          title: 'Processing...',
+          description: 'Deleting patient...',
+        },
+        success: data => ({
+          title: 'Success',
+          description: data.message,
+          duration: 3000,
+          isClosable: true,
+        }),
+        error: error => {
+          console.error(error);
+          return {
+            title: 'Error',
+            description: 'There was an error deleting the patient',
+            duration: 3000,
+            isClosable: true,
+          };
+        },
       }
-      const data = await response.json();
-      setPatients(p => p.filter(p => p.id !== id));
-      toast({
-        title: 'Success',
-        description: data.message,
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (error) {
-      console.error('There was an error deleting the patient:', error);
-      toast({
-        title: 'Error',
-        description: 'There was an error deleting the patient',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    }
+    );
   };
 
   const handleSelectPatient = (patient: Patient) => {
@@ -234,11 +261,17 @@ export default function PatientDashboard(): React.JSX.Element {
 
         <Flex gap={6} align="flex-start">
           <Box flex={1} minW="350px">
-            <PatientList
-              patients={patients}
-              onSelectPatient={handleSelectPatient}
-              selectedPatientId={selectedPatient?.id}
-            />
+            {isLoading ? (
+              <Center minH="50vh">
+                <Spinner size="xl" color="blue.500" />
+              </Center>
+            ) : (
+              <PatientList
+                patients={patients}
+                onSelectPatient={handleSelectPatient}
+                selectedPatientId={selectedPatient?.id}
+              />
+            )}
           </Box>
         </Flex>
 
