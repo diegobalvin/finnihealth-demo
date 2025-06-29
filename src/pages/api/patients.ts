@@ -45,6 +45,7 @@ export default async function handler(
     const patients = data.map((p: any) => ({
       id: p.id,
       firstName: p.first_name,
+      middleName: p.middle_name,
       lastName: p.last_name,
       dateOfBirth: p.date_of_birth,
       status: p.status,
@@ -114,6 +115,7 @@ export default async function handler(
     const newPatient: Patient = {
       id: patientData[0].id,
       firstName: patientData[0].first_name,
+      middleName: patientData[0].middle_name,
       lastName: patientData[0].last_name,
       dateOfBirth: patientData[0].date_of_birth,
       status: patientData[0].status,
@@ -241,6 +243,7 @@ export default async function handler(
       patient: {
         id: updatedPatient.id,
         firstName: updatedPatient.first_name,
+        middleName: updatedPatient.middle_name,
         lastName: updatedPatient.last_name,
         dateOfBirth: updatedPatient.date_of_birth,
         status: updatedPatient.status,
@@ -316,6 +319,7 @@ export default async function handler(
       patient: {
         id: deletedPatient.id,
         firstName: deletedPatient.first_name,
+        middleName: deletedPatient.middle_name,
         lastName: deletedPatient.last_name,
         dateOfBirth: deletedPatient.date_of_birth,
         status: deletedPatient.status,

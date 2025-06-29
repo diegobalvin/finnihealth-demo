@@ -220,7 +220,7 @@ export default function PatientDashboard(): React.JSX.Element {
     <Box minH="100vh" bg="gray.50">
       <Box bg="white" px={6} py={4} borderBottom="1px" borderColor="gray.200">
         <Heading size="lg" color="blue.500">
-          Finni Health Patient Management
+          Finni Health
         </Heading>
       </Box>
 
