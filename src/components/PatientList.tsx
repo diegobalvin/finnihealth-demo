@@ -16,13 +16,13 @@ const PatientList: React.FC<PatientListProps> = ({
 }) => {
   return (
     <Box overflowX="auto" bg="white" borderRadius="md" shadow="sm" p={2}>
-      <Table size="md">
+      <Table size="md" style={{ tableLayout: 'fixed' }}>
         <Thead>
           <Tr>
-            <Th>Name</Th>
-            <Th>Date of Birth</Th>
-            <Th>Address</Th>
-            <Th>Status</Th>
+            <Th width="25%">Name</Th>
+            <Th width="25%">Date of Birth</Th>
+            <Th width="30%">Address</Th>
+            <Th width="20%">Status</Th>
           </Tr>
         </Thead>
         <Tbody>
@@ -36,14 +36,14 @@ const PatientList: React.FC<PatientListProps> = ({
                 _hover={{ bg: 'gray.100', cursor: 'pointer' }}
                 onClick={() => onSelectPatient(patient)}
               >
-                <Td fontWeight="normal">{fullName}</Td>
-                <Td>
+                <Td width="25%">{fullName}</Td>
+                <Td width="25%">
                   {new Date(patient.dateOfBirth).toLocaleDateString('en-US', {
                     timeZone: 'UTC',
                   })}
                 </Td>
-                <Td>{patient.address}</Td>
-                <Td>
+                <Td width="30%">{patient.address}</Td>
+                <Td width="20%">
                   <Badge colorScheme={getStatusColorScheme(patient.status)}>
                     {patient.status}
                   </Badge>
