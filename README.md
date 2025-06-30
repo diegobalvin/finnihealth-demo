@@ -43,7 +43,7 @@ Please build a web-based application using your favourite stack that accomplishe
 - Certain optimizations: e.g. skipping the api call if no patient information has been updated.
 - Filtering/Searching results!
 - More robust test-cases! Cursor helped me build a basic, preliminary test suite quickly. But the current test cases are far from production ready.
-- Address [auto-complete](https://developers.google.com/maps/documentation/javascript/examples/places-autocomplete-addressform)!
+- Address [auto-complete](https://developers.google.com/maps/documentation/javascript/examples/places-autocomplete-addressform)! (multi-line addresses for better searching)
 
 
 
