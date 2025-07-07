@@ -66,7 +66,7 @@ function mapStatusUpdateRow(s: StatusUpdateRow): StatusUpdate {
   };
 }
 
-function mapPatientRow(p: PatientRow): Patient {
+export function mapPatientRow(p: PatientRow): Patient {
   return {
     id: p.id,
     firstName: p.first_name,

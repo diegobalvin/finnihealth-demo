@@ -8,10 +8,11 @@ import {
   useDisclosure,
   useToast,
   Flex,
-  Center,
-  Spinner,
+  Input,
+  InputGroup,
+  InputLeftElement,
 } from '@chakra-ui/react';
-
+import { LuSearch } from 'react-icons/lu';
 import { Patient, PatientFormData } from '@/types/patient';
 import PatientList from './PatientList';
 import PatientForm from './PatientForm';
@@ -22,13 +23,14 @@ export default function PatientDashboard(): React.JSX.Element {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchPatients = async () => {
+    const response = await fetch('/api/patients');
+    const data = await response.json();
+    setPatients(data.patients);
+    setIsLoading(false);
+  };
+
   useEffect(() => {
-    const fetchPatients = async () => {
-      const response = await fetch('/api/patients');
-      const data = await response.json();
-      setPatients(data.patients);
-      setIsLoading(false);
-    };
     fetchPatients();
   }, []);
   const {
@@ -244,6 +246,28 @@ export default function PatientDashboard(): React.JSX.Element {
     handleFormDataChange({ ...formData, [field]: value });
   };
 
+  const handleSearch = async (query: string) => {
+    if (query.length <= 3) {
+      fetchPatients();
+    }
+  };
+
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const query = (e.target as HTMLInputElement).value;
+    if (e.key === 'Enter' && query.length > 3) {
+      e.preventDefault();
+      setIsLoading(true);
+      const response = await fetch('/api/patients/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      const data = await response.json();
+      setPatients(data.patients);
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Box minH="100vh" bg="gray.50">
       <Box bg="white" px={6} py={4} borderBottom="1px" borderColor="gray.200">
@@ -251,30 +275,33 @@ export default function PatientDashboard(): React.JSX.Element {
           Finni Health
         </Heading>
       </Box>
-
       <Box p={6}>
-        <Box mb={4}>
+        <Flex mb={4} gap={4} justifyContent={'space-between'}>
           <Button colorScheme="blue" onClick={handleAddPatient} size="md">
             + Add Patient
           </Button>
-        </Box>
+          <InputGroup width="500px" margin="auto">
+            <InputLeftElement children={<LuSearch />} />
+            <Input
+              name="search"
+              placeholder="Search patients... (e.g., 'active patients in New York')"
+              onChange={e => handleSearch(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+          </InputGroup>
+          <Button width="8.75em" size="md" visibility="hidden"></Button>
+        </Flex>
 
         <Flex gap={6} align="flex-start">
           <Box flex={1} minW="350px">
-            {isLoading ? (
-              <Center minH="50vh">
-                <Spinner size="xl" color="blue.500" />
-              </Center>
-            ) : (
-              <PatientList
-                patients={patients}
-                onSelectPatient={handleSelectPatient}
-                selectedPatientId={selectedPatient?.id}
-              />
-            )}
+            <PatientList
+              isLoading={isLoading}
+              patients={patients}
+              onSelectPatient={handleSelectPatient}
+              selectedPatientId={selectedPatient?.id}
+            />
           </Box>
         </Flex>
-
         <PatientEditPanel
           isOpen={isDrawerOpen}
           onClose={handleDrawerClose}
