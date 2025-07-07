@@ -22,15 +22,19 @@ async function getGroqCompletion(query: string) {
     - "firstName" (string): The first name of the patient.
     - "middleName" (string): The middle name of the patient.
     - "lastName" (string): The last name of the patient.
-    - "location" (string): A city, state, state abbreviation, or part of an address.
-    - "ageRange" (object with "operator": "<", ">", or "=", and "start": number, and "end": number): age range for the patient
-    - "hasMiddleName" (boolean): Whether the query is asking if a patient has or does not have a middle name.
+    - "location" (object with "city": string, "state": string, "stateAbbreviation": string, "zipCode": string, "address": string): A city, state, state abbreviation, zip code, or part of an address.
+    - "ageRange" (object with "startAge": number, and "endAge": number): age range for the patient
+    - "hasMiddleName" (boolean): Whether the provider is asking if a patient has or does not have a middle name.
     - "status" (one of 'Inquiry', 'Onboarding', 'Active', 'Churned'): current status of the patient
     - "statusUpdatedAt" (object with "start": timestampz, and "end": timestampz): date range for when the patient's status was updated
 
     If you only find one name, include that name as firstName and lastName and middleName in the output.
 
     If you find a state, include the state abbreviation in the output.
+
+    When the query uses "over [age]" or "above [age]", interpret this as "age [startAge] and older" (inclusive of the specified age).  
+
+    If an endAge is implied but not specified, use 120 as the endAge.
 
     If a specific field is not mentioned, do not include it in the output.
     The user's query is: "${query}"
@@ -79,9 +83,16 @@ export default async function handler(
     let supabaseQuery = supabase.from('patients').select('*, status_update(*)');
 
     if (filters.firstName || filters.lastName || filters.middleName) {
-      supabaseQuery = supabaseQuery.or(
-        `first_name.ilike.%${filters.firstName}%,last_name.ilike.%${filters.lastName}%,middle_name.ilike.%${filters.middleName}%`
-      );
+      const nameFilter: string[] = [];
+
+      if (filters.firstName)
+        nameFilter.push(`first_name.ilike.%${filters.firstName}%`);
+      if (filters.lastName)
+        nameFilter.push(`last_name.ilike.%${filters.lastName}%`);
+      if (filters.middleName)
+        nameFilter.push(`middle_name.ilike.%${filters.middleName}%`);
+
+      supabaseQuery = supabaseQuery.or(nameFilter.join(','));
     }
     if (filters.hasMiddleName === false) {
       supabaseQuery = supabaseQuery.is('middle_name', null);
@@ -90,34 +101,37 @@ export default async function handler(
     }
 
     if (filters.location) {
-      supabaseQuery = supabaseQuery.ilike('address', `%${filters.location}%`);
+      const { address, city, state, stateAbbreviation, zipCode } =
+        filters.location;
+      const addressFilter: string[] = [];
+
+      if (city) addressFilter.push(`address.ilike.%${city}%`);
+      if (state) addressFilter.push(`address.ilike.%${state}%`);
+      if (stateAbbreviation)
+        addressFilter.push(`address.ilike.%${stateAbbreviation}%`);
+      if (zipCode) addressFilter.push(`address.ilike.%${zipCode}%`);
+      if (address) addressFilter.push(`address.ilike.%${address}%`);
+      supabaseQuery = supabaseQuery.or(addressFilter.join(','));
     }
     if (filters.status) {
       supabaseQuery = supabaseQuery.eq('status', filters.status);
     }
     if (filters.ageRange) {
-      // TODO: This is not working as expected.
-      const { operator, start, end } = filters.ageRange;
-      const startBirthYear = new Date().getFullYear() - start; // 0
-      const startBirthDate = new Date(startBirthYear, 0, 1);
-      const endBirthYear = new Date().getFullYear() - end; // 30
-      const endBirthDate = new Date(endBirthYear, 0, 1);
+      const { startAge, endAge } = filters.ageRange;
+      const today = new Date();
 
-      if (operator === '<') {
-        supabaseQuery = supabaseQuery.gt(
-          'date_of_birth',
-          endBirthDate.toISOString() // 1990
-        );
-      } else if (operator === '>') {
-        supabaseQuery = supabaseQuery.lt(
-          'date_of_birth',
-          startBirthDate.toISOString()
-        );
-      } else {
-        supabaseQuery = supabaseQuery
-          .gte('date_of_birth', startBirthDate.toISOString())
-          .lt('date_of_birth', endBirthDate.toISOString());
-      }
+      // Calculate the earliest birth date (oldest person in range)
+      const earliestBirthDate = new Date(today);
+      earliestBirthDate.setFullYear(today.getFullYear() - endAge - 1);
+      earliestBirthDate.setDate(earliestBirthDate.getDate() + 1); // Add 1 day to make it inclusive
+
+      // Calculate the latest birth date (youngest person in range)
+      const latestBirthDate = new Date(today);
+      latestBirthDate.setFullYear(today.getFullYear() - startAge);
+
+      supabaseQuery = supabaseQuery
+        .gte('date_of_birth', earliestBirthDate.toISOString())
+        .lte('date_of_birth', latestBirthDate.toISOString());
     }
 
     if (filters.statusUpdate) {

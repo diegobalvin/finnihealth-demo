@@ -42,7 +42,7 @@ function validatePatientData(patient: any): string | undefined {
   let error: string | undefined;
   error = validateName(patient.firstName || '', 'first name');
   if (error) return error;
-  if (patient.middleName !== undefined) {
+  if (patient.middleName !== null) {
     error = validateName(patient.middleName, 'middle name');
     if (error) return error;
   }
