@@ -8,7 +8,9 @@ import { DateOfBirthMaxAge } from '@/utils/validation';
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 async function getGroqCompletion(query: string) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = genAI.getGenerativeModel({
+    model: 'models/gemini-1.5-flash-8b',
+  });
 
   const prompt = `
     You are an API that converts natural language search queries from a medical provider into a structured JSON object for database filtering.
