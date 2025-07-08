@@ -77,7 +77,7 @@ const PatientForm: React.FC<PatientFormProps> = ({
 
           <HStack spacing={3} justify="flex-end">
             <Button onClick={onCancel}>Cancel</Button>
-            <Button colorScheme="blue" onClick={handleSubmit}>
+            <Button colorScheme="orange" onClick={handleSubmit}>
               Add
             </Button>
           </HStack>

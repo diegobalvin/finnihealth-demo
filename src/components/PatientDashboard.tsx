@@ -8,27 +8,48 @@ import {
   useDisclosure,
   useToast,
   Flex,
-  Center,
-  Spinner,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  Text,
 } from '@chakra-ui/react';
-
+import { LuSearch } from 'react-icons/lu';
 import { Patient, PatientFormData } from '@/types/patient';
 import PatientList from './PatientList';
 import PatientForm from './PatientForm';
 import PatientEditPanel from './PatientEditPanel';
 import { PatientApiResponse } from '@/pages/api/patients';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
+
+const ToastDuration = 3000;
 
 export default function PatientDashboard(): React.JSX.Element {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user, signOut } = useAuth();
+  const { authenticatedFetch } = useAuthenticatedFetch();
 
-  useEffect(() => {
-    const fetchPatients = async () => {
-      const response = await fetch('/api/patients');
+  const fetchPatients = async () => {
+    try {
+      const response = await authenticatedFetch('/api/patients');
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
       const data = await response.json();
       setPatients(data.patients);
       setIsLoading(false);
-    };
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPatients();
   }, []);
   const {
@@ -87,7 +108,7 @@ export default function PatientDashboard(): React.JSX.Element {
         title: 'Validation Error',
         description: 'Please fill in all required fields',
         status: 'error',
-        duration: 3000,
+        duration: ToastDuration,
         isClosable: true,
       });
       return;
@@ -107,9 +128,8 @@ export default function PatientDashboard(): React.JSX.Element {
         let response: Response;
         let data: PatientApiResponse;
         if (selectedPatient) {
-          response = await fetch(`/api/patients/`, {
+          response = await authenticatedFetch(`/api/patients/`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               ...patientFormData,
               id: selectedPatient.id,
@@ -134,9 +154,8 @@ export default function PatientDashboard(): React.JSX.Element {
           );
           handleDrawerClose();
         } else {
-          response = await fetch(`/api/patients/`, {
+          response = await authenticatedFetch(`/api/patients/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...patientFormData }),
           });
           if (!response.ok) {
@@ -165,7 +184,7 @@ export default function PatientDashboard(): React.JSX.Element {
         success: data => ({
           title: 'Success',
           description: data.message,
-          duration: 3000,
+          duration: ToastDuration,
           isClosable: true,
         }),
         error: error => {
@@ -175,7 +194,7 @@ export default function PatientDashboard(): React.JSX.Element {
             description: selectedPatient
               ? 'There was an error updating the patient'
               : 'There was an error adding the patient',
-            duration: 3000,
+            duration: ToastDuration,
             isClosable: true,
           };
         },
@@ -186,9 +205,8 @@ export default function PatientDashboard(): React.JSX.Element {
   const handleDeletePatient = async (id: string): Promise<void> => {
     toast.promise(
       (async () => {
-        const response = await fetch(`/api/patients/`, {
+        const response = await authenticatedFetch(`/api/patients/`, {
           method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id }),
         });
         if (!response.ok) {
@@ -213,7 +231,7 @@ export default function PatientDashboard(): React.JSX.Element {
         success: data => ({
           title: 'Success',
           description: data.message,
-          duration: 3000,
+          duration: ToastDuration,
           isClosable: true,
         }),
         error: error => {
@@ -221,7 +239,7 @@ export default function PatientDashboard(): React.JSX.Element {
           return {
             title: 'Error',
             description: 'There was an error deleting the patient',
-            duration: 3000,
+            duration: ToastDuration,
             isClosable: true,
           };
         },
@@ -244,37 +262,79 @@ export default function PatientDashboard(): React.JSX.Element {
     handleFormDataChange({ ...formData, [field]: value });
   };
 
+  const handleSearch = async (query: string) => {
+    if (query.length <= 3) {
+      fetchPatients();
+    }
+  };
+
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const query = (e.target as HTMLInputElement).value;
+    if (e.key === 'Enter' && query.length > 3) {
+      e.preventDefault();
+      setIsLoading(true);
+      const response = await authenticatedFetch('/api/patients/search', {
+        method: 'POST',
+        body: JSON.stringify({ query }),
+      });
+      const data = await response.json();
+      setPatients(data.patients);
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   return (
     <Box minH="100vh" bg="gray.50">
       <Box bg="white" px={6} py={4} borderBottom="1px" borderColor="gray.200">
-        <Heading size="lg" color="blue.500">
-          Finni Health
-        </Heading>
+        <Flex justify="space-between" align="center">
+          <Heading size="lg" color="orange.500">
+            Finni Health
+          </Heading>
+          <Flex align="center" gap={4}>
+            <Text fontSize="sm" color="gray.600">
+              {user?.email}
+            </Text>
+            <Button size="sm" variant="outline" onClick={handleLogout}>
+              Logout
+            </Button>
+          </Flex>
+        </Flex>
       </Box>
-
       <Box p={6}>
-        <Box mb={4}>
-          <Button colorScheme="blue" onClick={handleAddPatient} size="md">
+        <Flex mb={4} gap={4} justifyContent={'space-between'}>
+          <Button colorScheme="orange" onClick={handleAddPatient} size="md">
             + Add Patient
           </Button>
-        </Box>
+          <InputGroup width="500px" margin="auto">
+            <InputLeftElement children={<LuSearch />} />
+            <Input
+              name="search"
+              placeholder="Search patients... (e.g., 'active patients in New York')"
+              onChange={e => handleSearch(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+          </InputGroup>
+          <Button width="8.75em" size="md" visibility="hidden"></Button>
+        </Flex>
 
         <Flex gap={6} align="flex-start">
           <Box flex={1} minW="350px">
-            {isLoading ? (
-              <Center minH="50vh">
-                <Spinner size="xl" color="blue.500" />
-              </Center>
-            ) : (
-              <PatientList
-                patients={patients}
-                onSelectPatient={handleSelectPatient}
-                selectedPatientId={selectedPatient?.id}
-              />
-            )}
+            <PatientList
+              isLoading={isLoading}
+              patients={patients}
+              onSelectPatient={handleSelectPatient}
+              selectedPatientId={selectedPatient?.id}
+            />
           </Box>
         </Flex>
-
         <PatientEditPanel
           isOpen={isDrawerOpen}
           onClose={handleDrawerClose}

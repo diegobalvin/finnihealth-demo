@@ -13,7 +13,7 @@ export interface Patient {
 // TODO: Add provider interface and login functionality
 export interface Provider {
   id: string;
-  userName: string;
+  emailAddress: string;
   password: string;
 }
 
