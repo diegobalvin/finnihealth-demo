@@ -1,8 +1,9 @@
 import { NextApiResponse } from 'next';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Patient } from '../../../types/patient';
-import { PatientRow, mapPatientRow } from '../../../pages/api/patients';
+import { PatientRow, mapPatientRow } from '../patients';
 import { withAuth, AuthenticatedRequest } from '@/lib/auth-middleware';
+import { DateOfBirthMaxAge } from '@/utils/validation';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -33,7 +34,7 @@ async function getGroqCompletion(query: string) {
 
     When a query mentions elderly, or any similar word, interpret this as "age 65 and older".
 
-    If an endAge is implied but not specified, use 120 as the endAge.
+    If an endAge is implied but not specified, use ${DateOfBirthMaxAge} as the endAge.
 
     If a specific field is not mentioned, do not include it in the output.
     The user's query is: "${query}"

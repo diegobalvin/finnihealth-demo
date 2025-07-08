@@ -165,17 +165,8 @@ async function handler(
       });
       return;
     }
-    const newPatient: Patient = {
-      id: patientData[0].id as string,
-      firstName: patientData[0].first_name as string,
-      middleName: patientData[0].middle_name as string,
-      lastName: patientData[0].last_name as string,
-      dateOfBirth: patientData[0].date_of_birth as string,
-      status: patientData[0].status as Patient['status'],
-      address: patientData[0].address as string,
-      providerId: patientData[0].provider_id as string,
-      statusHistory: [],
-    };
+    const newPatient: Patient = mapPatientRow(patientData[0]);
+
     // add status update to database
     const { data: statusUpdateData, error: statusUpdateError } = await supabase
       .from('status_update')
@@ -303,19 +294,7 @@ async function handler(
     res.status(200).json({
       message: 'Patient updated successfully',
       patients: [],
-      patient: {
-        id: updatedPatient.id as string,
-        firstName: updatedPatient.first_name as string,
-        middleName: updatedPatient.middle_name as string,
-        lastName: updatedPatient.last_name as string,
-        dateOfBirth: updatedPatient.date_of_birth as string,
-        status: updatedPatient.status as Patient['status'],
-        address: updatedPatient.address as string,
-        providerId: updatedPatient.provider_id as string,
-        statusHistory: (
-          (updatedPatient.status_update as unknown as StatusUpdateRow[]) || []
-        ).map(mapStatusUpdateRow),
-      },
+      patient: mapPatientRow(updatedPatient),
     });
   } else if (req.method === 'DELETE') {
     const patient =
@@ -376,19 +355,7 @@ async function handler(
     res.status(200).json({
       message: 'Patient deleted successfully',
       patients: [],
-      patient: {
-        id: deletedPatient.id as string,
-        firstName: deletedPatient.first_name as string,
-        middleName: deletedPatient.middle_name as string,
-        lastName: deletedPatient.last_name as string,
-        dateOfBirth: deletedPatient.date_of_birth as string,
-        status: deletedPatient.status as Patient['status'],
-        address: deletedPatient.address as string,
-        providerId: deletedPatient.provider_id as string,
-        statusHistory: (
-          (deletedPatient.status_update as unknown as StatusUpdateRow[]) || []
-        ).map(mapStatusUpdateRow),
-      },
+      patient: mapPatientRow(deletedPatient),
     });
   } else {
     res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);

@@ -22,6 +22,8 @@ import { PatientApiResponse } from '@/pages/api/patients';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 
+const ToastDuration = 3000;
+
 export default function PatientDashboard(): React.JSX.Element {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,7 +108,7 @@ export default function PatientDashboard(): React.JSX.Element {
         title: 'Validation Error',
         description: 'Please fill in all required fields',
         status: 'error',
-        duration: 3000,
+        duration: ToastDuration,
         isClosable: true,
       });
       return;
@@ -182,7 +184,7 @@ export default function PatientDashboard(): React.JSX.Element {
         success: data => ({
           title: 'Success',
           description: data.message,
-          duration: 3000,
+          duration: ToastDuration,
           isClosable: true,
         }),
         error: error => {
@@ -192,7 +194,7 @@ export default function PatientDashboard(): React.JSX.Element {
             description: selectedPatient
               ? 'There was an error updating the patient'
               : 'There was an error adding the patient',
-            duration: 3000,
+            duration: ToastDuration,
             isClosable: true,
           };
         },
@@ -229,7 +231,7 @@ export default function PatientDashboard(): React.JSX.Element {
         success: data => ({
           title: 'Success',
           description: data.message,
-          duration: 3000,
+          duration: ToastDuration,
           isClosable: true,
         }),
         error: error => {
@@ -237,7 +239,7 @@ export default function PatientDashboard(): React.JSX.Element {
           return {
             title: 'Error',
             description: 'There was an error deleting the patient',
-            duration: 3000,
+            duration: ToastDuration,
             isClosable: true,
           };
         },
