@@ -2,7 +2,7 @@ export const validateName = (
   name: string,
   field: string
 ): string | undefined => {
-  if (!name.trim()) return `A ${field} is required`;
+  if (name && !name.trim()) return `A ${field} is required`;
   if (name.length < 2) return `A ${field} must be at least 2 characters`;
   if (name.length > 50) return `A ${field} must be less than 50 characters`;
   if (!/^[\w'\-,.][^0-9_!¡?÷?¿/\\+=@#$%ˆ&*(){}|~<>;:[\]]{2,}$/.test(name))

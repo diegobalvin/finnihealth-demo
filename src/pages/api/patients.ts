@@ -1,17 +1,12 @@
 import { Patient, StatusUpdate } from '@/types/patient';
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import type { NextApiResponse } from 'next';
 import {
   validateName,
   validateAddress,
   validateDateOfBirth,
   validateStatus,
 } from '@/utils/validation';
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl!, supabaseKey!);
+import { withAuth, AuthenticatedRequest } from '@/lib/auth-middleware';
 
 export type PatientApiResponse = {
   message: string;
@@ -42,7 +37,7 @@ function validatePatientData(patient: any): string | undefined {
   let error: string | undefined;
   error = validateName(patient.firstName || '', 'first name');
   if (error) return error;
-  if (patient.middleName !== null) {
+  if (patient.middleName !== null && patient.middleName !== undefined) {
     error = validateName(patient.middleName, 'middle name');
     if (error) return error;
   }
@@ -82,10 +77,11 @@ export function mapPatientRow(p: PatientRow): Patient {
   };
 }
 
-export default async function handler(
-  req: NextApiRequest,
+async function handler(
+  req: AuthenticatedRequest,
   res: NextApiResponse<PatientApiResponse>
 ) {
+  const { user, supabase } = req;
   if (req.method === 'GET') {
     // read all patients and status updates from database
     const { data, error } = await supabase
@@ -102,7 +98,7 @@ export default async function handler(
       return;
     }
 
-    const patients: Patient[] = ((data as PatientRow[]) || []).map(
+    const patients: Patient[] = ((data as unknown as PatientRow[]) || []).map(
       mapPatientRow
     );
 
@@ -146,7 +142,7 @@ export default async function handler(
           date_of_birth: patient.dateOfBirth,
           status: patient.status,
           address: patient.address,
-          provider_id: patient.providerId,
+          provider_id: user.id,
         },
       ])
       .select();
@@ -170,14 +166,14 @@ export default async function handler(
       return;
     }
     const newPatient: Patient = {
-      id: patientData[0].id,
-      firstName: patientData[0].first_name,
-      middleName: patientData[0].middle_name,
-      lastName: patientData[0].last_name,
-      dateOfBirth: patientData[0].date_of_birth,
-      status: patientData[0].status,
-      address: patientData[0].address,
-      providerId: patientData[0].provider_id,
+      id: patientData[0].id as string,
+      firstName: patientData[0].first_name as string,
+      middleName: patientData[0].middle_name as string,
+      lastName: patientData[0].last_name as string,
+      dateOfBirth: patientData[0].date_of_birth as string,
+      status: patientData[0].status as Patient['status'],
+      address: patientData[0].address as string,
+      providerId: patientData[0].provider_id as string,
       statusHistory: [],
     };
     // add status update to database
@@ -204,10 +200,10 @@ export default async function handler(
       return;
     }
     const newStatusUpdate: StatusUpdate = {
-      id: statusUpdateData[0].id,
-      patientId: statusUpdateData[0].patient_id,
-      status: statusUpdateData[0].status,
-      createdAt: statusUpdateData[0].created_at,
+      id: statusUpdateData[0].id as string,
+      patientId: statusUpdateData[0].patient_id as string,
+      status: statusUpdateData[0].status as StatusUpdate['status'],
+      createdAt: statusUpdateData[0].created_at as string,
     };
 
     res.status(201).json({
@@ -308,16 +304,16 @@ export default async function handler(
       message: 'Patient updated successfully',
       patients: [],
       patient: {
-        id: updatedPatient.id,
-        firstName: updatedPatient.first_name,
-        middleName: updatedPatient.middle_name,
-        lastName: updatedPatient.last_name,
-        dateOfBirth: updatedPatient.date_of_birth,
-        status: updatedPatient.status,
-        address: updatedPatient.address,
-        providerId: updatedPatient.provider_id,
+        id: updatedPatient.id as string,
+        firstName: updatedPatient.first_name as string,
+        middleName: updatedPatient.middle_name as string,
+        lastName: updatedPatient.last_name as string,
+        dateOfBirth: updatedPatient.date_of_birth as string,
+        status: updatedPatient.status as Patient['status'],
+        address: updatedPatient.address as string,
+        providerId: updatedPatient.provider_id as string,
         statusHistory: (
-          (updatedPatient.status_update as StatusUpdateRow[]) || []
+          (updatedPatient.status_update as unknown as StatusUpdateRow[]) || []
         ).map(mapStatusUpdateRow),
       },
     });
@@ -381,16 +377,16 @@ export default async function handler(
       message: 'Patient deleted successfully',
       patients: [],
       patient: {
-        id: deletedPatient.id,
-        firstName: deletedPatient.first_name,
-        middleName: deletedPatient.middle_name,
-        lastName: deletedPatient.last_name,
-        dateOfBirth: deletedPatient.date_of_birth,
-        status: deletedPatient.status,
-        address: deletedPatient.address,
-        providerId: deletedPatient.provider_id,
+        id: deletedPatient.id as string,
+        firstName: deletedPatient.first_name as string,
+        middleName: deletedPatient.middle_name as string,
+        lastName: deletedPatient.last_name as string,
+        dateOfBirth: deletedPatient.date_of_birth as string,
+        status: deletedPatient.status as Patient['status'],
+        address: deletedPatient.address as string,
+        providerId: deletedPatient.provider_id as string,
         statusHistory: (
-          (deletedPatient.status_update as StatusUpdateRow[]) || []
+          (deletedPatient.status_update as unknown as StatusUpdateRow[]) || []
         ).map(mapStatusUpdateRow),
       },
     });
@@ -404,3 +400,5 @@ export default async function handler(
     });
   }
 }
+
+export default withAuth(handler);

@@ -147,7 +147,7 @@ const PatientEditPanel: React.FC<PatientEditPanelProps> = ({
                   </Button>
                   <Flex gap={3} justify="flex-end">
                     <Button onClick={handleFormCancel}>Cancel</Button>
-                    <Button colorScheme="blue" onClick={handleSubmit}>
+                    <Button colorScheme="orange" onClick={handleSubmit}>
                       Save
                     </Button>
                   </Flex>

@@ -11,6 +11,7 @@ import {
   Input,
   InputGroup,
   InputLeftElement,
+  Text,
 } from '@chakra-ui/react';
 import { LuSearch } from 'react-icons/lu';
 import { Patient, PatientFormData } from '@/types/patient';
@@ -18,16 +19,32 @@ import PatientList from './PatientList';
 import PatientForm from './PatientForm';
 import PatientEditPanel from './PatientEditPanel';
 import { PatientApiResponse } from '@/pages/api/patients';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 
 export default function PatientDashboard(): React.JSX.Element {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user, signOut } = useAuth();
+  const { authenticatedFetch } = useAuthenticatedFetch();
 
   const fetchPatients = async () => {
-    const response = await fetch('/api/patients');
-    const data = await response.json();
-    setPatients(data.patients);
-    setIsLoading(false);
+    try {
+      const response = await authenticatedFetch('/api/patients');
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      setPatients(data.patients);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -109,9 +126,8 @@ export default function PatientDashboard(): React.JSX.Element {
         let response: Response;
         let data: PatientApiResponse;
         if (selectedPatient) {
-          response = await fetch(`/api/patients/`, {
+          response = await authenticatedFetch(`/api/patients/`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               ...patientFormData,
               id: selectedPatient.id,
@@ -136,9 +152,8 @@ export default function PatientDashboard(): React.JSX.Element {
           );
           handleDrawerClose();
         } else {
-          response = await fetch(`/api/patients/`, {
+          response = await authenticatedFetch(`/api/patients/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...patientFormData }),
           });
           if (!response.ok) {
@@ -188,9 +203,8 @@ export default function PatientDashboard(): React.JSX.Element {
   const handleDeletePatient = async (id: string): Promise<void> => {
     toast.promise(
       (async () => {
-        const response = await fetch(`/api/patients/`, {
+        const response = await authenticatedFetch(`/api/patients/`, {
           method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id }),
         });
         if (!response.ok) {
@@ -257,9 +271,8 @@ export default function PatientDashboard(): React.JSX.Element {
     if (e.key === 'Enter' && query.length > 3) {
       e.preventDefault();
       setIsLoading(true);
-      const response = await fetch('/api/patients/search', {
+      const response = await authenticatedFetch('/api/patients/search', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query }),
       });
       const data = await response.json();
@@ -268,16 +281,34 @@ export default function PatientDashboard(): React.JSX.Element {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   return (
     <Box minH="100vh" bg="gray.50">
       <Box bg="white" px={6} py={4} borderBottom="1px" borderColor="gray.200">
-        <Heading size="lg" color="blue.500">
-          Finni Health
-        </Heading>
+        <Flex justify="space-between" align="center">
+          <Heading size="lg" color="orange.500">
+            Finni Health
+          </Heading>
+          <Flex align="center" gap={4}>
+            <Text fontSize="sm" color="gray.600">
+              {user?.email}
+            </Text>
+            <Button size="sm" variant="outline" onClick={handleLogout}>
+              Logout
+            </Button>
+          </Flex>
+        </Flex>
       </Box>
       <Box p={6}>
         <Flex mb={4} gap={4} justifyContent={'space-between'}>
-          <Button colorScheme="blue" onClick={handleAddPatient} size="md">
+          <Button colorScheme="orange" onClick={handleAddPatient} size="md">
             + Add Patient
           </Button>
           <InputGroup width="500px" margin="auto">

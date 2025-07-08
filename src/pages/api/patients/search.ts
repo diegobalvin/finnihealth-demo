@@ -1,13 +1,8 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiResponse } from 'next';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { createClient } from '@supabase/supabase-js';
 import { Patient } from '../../../types/patient';
 import { PatientRow, mapPatientRow } from '../../../pages/api/patients';
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl!, supabaseKey!);
+import { withAuth, AuthenticatedRequest } from '@/lib/auth-middleware';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -32,7 +27,11 @@ async function getGroqCompletion(query: string) {
 
     If you find a state, include the state abbreviation in the output.
 
-    When the query uses "over [age]" or "above [age]", interpret this as "age [startAge] and older" (inclusive of the specified age).  
+    When the query uses "over [age]" or "above [age]", interpret this as "age [startAge] and older" (inclusive of the specified age). 
+    
+    When a query mentions kids, or any similar word, interpret this as "age 0 to 18".
+
+    When a query mentions elderly, or any similar word, interpret this as "age 65 and older".
 
     If an endAge is implied but not specified, use 120 as the endAge.
 
@@ -58,10 +57,8 @@ async function getGroqCompletion(query: string) {
   }
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+async function handler(req: AuthenticatedRequest, res: NextApiResponse) {
+  const { supabase } = req;
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
@@ -120,12 +117,12 @@ export default async function handler(
       const { startAge, endAge } = filters.ageRange;
       const today = new Date();
 
-      // Calculate the earliest birth date (oldest person in range)
+      // The earliest birth date (oldest person in range)
       const earliestBirthDate = new Date(today);
       earliestBirthDate.setFullYear(today.getFullYear() - endAge - 1);
       earliestBirthDate.setDate(earliestBirthDate.getDate() + 1); // Add 1 day to make it inclusive
 
-      // Calculate the latest birth date (youngest person in range)
+      // The latest birth date (youngest person in range)
       const latestBirthDate = new Date(today);
       latestBirthDate.setFullYear(today.getFullYear() - startAge);
 
@@ -145,7 +142,7 @@ export default async function handler(
       return res.status(500).json({ message: 'Error fetching patients' });
     }
 
-    const patients: Patient[] = ((data as PatientRow[]) || []).map(
+    const patients: Patient[] = ((data as unknown as PatientRow[]) || []).map(
       mapPatientRow
     );
     res.status(200).json({ patients });
@@ -154,3 +151,5 @@ export default async function handler(
     res.status(500).json({ message: 'Error processing search query' });
   }
 }
+
+export default withAuth(handler);
